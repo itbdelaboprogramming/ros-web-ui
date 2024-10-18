@@ -1,0 +1,45 @@
+FROM osrf/ros:noetic-desktop-full
+
+RUN apt-get update \
+    && apt-get install -y \
+    nano \
+    vim \
+    mesa-utils \
+    libgl1-mesa-glx \
+    mosquitto   \
+    mosquitto-clients \
+    && rm -rf /var/lib/apt/lists/* 
+
+# pip3 install
+RUN apt-get update \
+    && apt-get install -y python3-pip \
+    && pip3 install paho-mqtt   \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY config/ /site_config/
+
+# Set Up User Permissions
+ARG USERNAME=itbdelabo
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create a non-root user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && mkdir /home/$USERNAME/.config && chown $USER_UID:$USER_GID /home/$USERNAME/.config
+
+# Set up sudo
+RUN apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME\
+    && chmod 0440 /etc/sudoers.d/$USERNAME \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY config/entrypoint.sh /entrypoint.sh
+ENTRYPOINT [ "/bin/bash", "/entrypoint.sh" ]
+
+COPY config/bashrc /home/$USERNAME/.bashrc
+
+EXPOSE 11311
+
+CMD ["bash"]

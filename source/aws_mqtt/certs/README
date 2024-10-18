@@ -1,0 +1,1 @@
+Place the SSL/TLS server keys and certificates in this directory. This directory will be inserted automatically into the Docker container.

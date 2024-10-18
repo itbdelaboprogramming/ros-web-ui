@@ -1,0 +1,53 @@
+FROM ros:noetic
+
+# Install essential packages
+RUN apt-get update && apt-get install -y \
+    nano \
+    git \
+    python3-pip \
+    ros-noetic-catkin \
+    ros-noetic-mqtt-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Up User Permissions
+ARG USERNAME=itbdelabo
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create a non-root user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && mkdir /home/$USERNAME/.config && chown $USER_UID:$USER_GID /home/$USERNAME/.config
+
+# Set up sudo
+RUN apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME\
+    && chmod 0440 /etc/sudoers.d/$USERNAME \
+    && rm -rf /var/lib/apt/lists/*
+
+# Mkdir for ROS workspace
+RUN mkdir -p "/home/$USERNAME/ros-web-ui-ws/src"
+
+# Clone the workspace and build it using catkin_make
+RUN cd "/home/$USERNAME/ros-web-ui-ws/src" \
+    && git clone https://github.com/farhan-sw/ros-web-ui.git \
+    && cd "/home/$USERNAME/ros-web-ui-ws" \
+    && /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+
+# Add ROS and workspace source to .bashrc
+RUN echo "source /opt/ros/noetic/setup.bash" >> "/home/$USERNAME/.bashrc" \
+    && echo "source /home/$USERNAME/ros-web-ui-ws/devel/setup.bash" >> "/home/$USERNAME/.bashrc"
+
+# Add an alias to easily source .bashrc
+RUN echo "alias srcbashrc='source /home/$USERNAME/.bashrc'" >> "/home/$USERNAME/.bashrc"
+
+# Make sure the .bashrc file is executable and available to the user
+RUN chown $USERNAME:$USERNAME /home/$USERNAME/.bashrc \
+    && chmod +x /home/$USERNAME/.bashrc
+
+# Change user to non-root user
+USER $USERNAME
+
+# Default command
+CMD ["bash"]

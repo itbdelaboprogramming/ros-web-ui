@@ -1,0 +1,15 @@
+<launch>
+  <arg name="namespace" default="/" />
+  <arg name="node_name" default="mqtt_client" />
+  <arg name="cert_path" default="$(find aws_mqtt)/certs" />
+
+  <node pkg="nodelet" type="nodelet" name="$(arg node_name)" ns="$(arg namespace)" args="standalone mqtt_client/MqttClient" output="screen">
+    <!-- Set the certificate paths  -->
+    <param name="broker/tls/ca_certificate" value="$(arg cert_path)/rootCA.pem" />
+    <param name="client/tls/certificate" value="$(arg cert_path)/cert.pem" />
+    <param name="client/tls/key" value="$(arg cert_path)/private.pem" />
+    
+    <!-- Load other parameters from the YAML file -->
+    <rosparam command="load" file="$(find aws_mqtt)/config/params.aws.yaml" />
+  </node>
+</launch>

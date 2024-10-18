@@ -1,0 +1,75 @@
+FROM ros:noetic
+
+# Install essential packages
+RUN apt-get update && apt-get install -y \
+    nano \
+    vim \
+    mosquitto \
+    mosquitto-clients \
+    git \
+    sudo \
+    python3-pip \
+    python3-msgpack \
+    python3-pymongo \
+    ros-noetic-catkin \
+    && pip3 install paho-mqtt inject \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up non-root user
+ARG USERNAME=itbdelabo
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create user and group, set up sudo privileges
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && mkdir /home/$USERNAME/.config && chown $USER_UID:$USER_GID /home/$USERNAME/.config \
+    && echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Copy configuration files
+COPY config/ /site_config/
+COPY config/entrypoint.sh /entrypoint.sh
+COPY config/bashrc /home/$USERNAME/.bashrc
+
+# Ensure the non-root user owns their bashrc
+RUN chown $USER_UID:$USER_GID /home/$USERNAME/.bashrc
+
+# Install colcon for building ROS packages
+RUN apt-get update && apt-get install -y \
+    python3-colcon-common-extensions \
+    && rm -rf /var/lib/apt/lists/*
+
+# Expose the ROS master port
+EXPOSE 11311
+
+# Set up AWS IoT Bridge
+# Set up AWS IoT Bridge
+RUN mkdir -p /home/$USERNAME/ros-aws-iot_bridge/src \
+    && cd /home/$USERNAME/ros-aws-iot_bridge/src \
+    && git clone https://github.com/farhan-sw/aws-iot-bridge.git \
+    && cd /home/$USERNAME/ros-aws-iot_bridge \
+    && apt-get update && rosdep update \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    # Change ownership of the workspace to the non-root user
+    && chown -R $USERNAME:$USERNAME /home/$USERNAME/ros-aws-iot_bridge \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build the AWS IoT Bridge
+RUN cd /home/$USERNAME/ros-aws-iot_bridge \
+    && sudo -u $USERNAME /bin/bash -c "source /opt/ros/noetic/setup.bash && colcon build"
+
+# Set the default entrypoint script
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
+
+# Add ROS Source to bashrc
+RUN echo "source /opt/ros/noetic/setup.bash" >> /home/$USERNAME/.bashrc
+
+# Add AWS IoT Bridge setup to bashrc
+RUN echo "source /home/$USERNAME/ros-aws-iot_bridge/install/setup.bash" >> /home/$USERNAME/.bashrc
+
+# Source Bashrc
+RUN echo "source /home/$USERNAME/.bashrc" >> /root/.bashrc
+
+# Default command
+CMD ["bash"]
