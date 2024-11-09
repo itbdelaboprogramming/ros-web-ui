@@ -220,5 +220,7 @@ catkin_install_python(PROGRAMS
   scripts/map2string.py
   scripts/string2map.py
   scripts/pose_stamped_publisher.py
+
+  scripts/testing_publish_pose_array.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
