@@ -1,0 +1,7 @@
+<launch>
+    <node name="action_server" pkg="topic2string" type="action_server.py" output="screen">
+    </node>
+
+    <node name="robotpose_server" pkg="topic2string" type="robotpose_from_string.py" output="screen">
+    </node>
+</launch>

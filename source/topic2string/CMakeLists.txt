@@ -213,13 +213,11 @@ include_directories(
 # catkin_add_nosetests(test)
 
 catkin_install_python(PROGRAMS 
-  scripts/twist2string.py
-  scripts/string2twist.py
-  scripts/posestamped2string.py
-  scripts/string2posestamped.py
-  scripts/map2string.py
-  scripts/string2map.py
-  scripts/pose_stamped_publisher.py
+  scripts/action_client.py
+  scripts/action_server.py
+
+  scripts/robotpose_from_string.py
+  scripts/robotpose_to_string.py
 
   scripts/testing_publish_pose_array.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
