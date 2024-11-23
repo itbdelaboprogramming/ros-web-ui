@@ -218,7 +218,5 @@ catkin_install_python(PROGRAMS
 
   scripts/robotpose_from_string.py
   scripts/robotpose_to_string.py
-
-  scripts/testing_publish_pose_array.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
