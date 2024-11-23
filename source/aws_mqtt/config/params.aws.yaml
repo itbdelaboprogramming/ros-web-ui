@@ -47,3 +47,7 @@ bridge:
     - mqtt_topic: pingpong/primitive
       ros_topic: /pong/primitive
       primitive: true
+  msd_robotpose:
+    - ros_topic: /msd/robotpose
+      mqtt_topic: msd/robotpose
+      primitive: true

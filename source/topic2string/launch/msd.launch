@@ -1,0 +1,11 @@
+<launch>
+    <node name="action_client" pkg="topic2string" type="action_client.py" output="screen">
+    </node>
+
+    <node name="robotpose_msd" pkg="topic2string" type="robotpose_to_string.py" output="screen">
+    </node>
+
+    <node name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" output="screen">
+        <remap from="/robot_pose" to="/msd/robotpose"/>
+    </node>
+</launch>

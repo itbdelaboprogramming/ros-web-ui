@@ -11,17 +11,22 @@ class ActionServer:
     def __init__(self):
         rospy.init_node('action_server')
         
-        self.result_string_topic = rospy.get_param('~result_string_topic', '/move_base/result_string')
+        # Get parameters for all topic names
+        self.goal_string_topic = rospy.get_param('~goal_string_topic', '/string/move_base/goal')
+        self.cancel_string_topic = rospy.get_param('~cancel_string_topic', '/string/move_base/cancel')
+        self.result_string_topic = rospy.get_param('~result_string_topic', '/string/move_base/result')
         self.result_topic = rospy.get_param('~result_topic', '/move_base_convert/result')
+        self.goal_topic = rospy.get_param('~goal_topic', '/move_base_convert/goal')
+        self.cancel_topic = rospy.get_param('~cancel_topic', '/move_base_convert/cancel')
 
         # Publisher for string topics
-        self.goal_pub = rospy.Publisher('/move_base/goal_string', String, queue_size=10)
-        self.cancel_pub = rospy.Publisher('/move_base/cancel_string', String, queue_size=10)
+        self.goal_pub = rospy.Publisher(self.goal_string_topic, String, queue_size=10)
+        self.cancel_pub = rospy.Publisher(self.cancel_string_topic, String, queue_size=10)
         self.result_pub = rospy.Publisher(self.result_topic, MoveBaseActionResult, queue_size=10)
 
         # Subscriber for action topics
-        rospy.Subscriber('/move_base_convert/goal', MoveBaseActionGoal, self.goal_callback)
-        rospy.Subscriber('/move_base_convert/cancel', GoalID, self.cancel_callback)
+        rospy.Subscriber(self.goal_topic, MoveBaseActionGoal, self.goal_callback)
+        rospy.Subscriber(self.cancel_topic, GoalID, self.cancel_callback)
         rospy.Subscriber(self.result_string_topic, String, self.result_callback)
 
     def goal_callback(self, msg):

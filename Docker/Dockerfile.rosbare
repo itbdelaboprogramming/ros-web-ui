@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     ros-noetic-catkin \
     ros-noetic-mqtt-client \
+    ros-noetic-rosbridge-suite \
+    ros-noetic-move-base \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Up User Permissions
@@ -31,9 +33,9 @@ RUN mkdir -p "/home/$USERNAME/ros-web-ui-ws/src"
 
 # Clone the workspace and build it using catkin_make
 RUN cd "/home/$USERNAME/ros-web-ui-ws/src" \
-    && git clone https://github.com/farhan-sw/ros-web-ui.git \
+    && git clone https://github.com/itbdelaboprogramming/ros-web-ui.git \
     && cd "/home/$USERNAME/ros-web-ui-ws" \
-    && /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+    && /bin/bash -c "source /opt/ros/noetic/setup.bash && rosdep install --from-paths src --ignore-src -r -y && catkin_make"
 
 # Add ROS and workspace source to .bashrc
 RUN echo "source /opt/ros/noetic/setup.bash" >> "/home/$USERNAME/.bashrc" \
