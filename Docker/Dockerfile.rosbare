@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-mqtt-client \
     ros-noetic-rosbridge-suite \
     ros-noetic-move-base \
+    ros-noetic-map-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Up User Permissions
