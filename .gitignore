@@ -2,6 +2,7 @@
 *.pem
 *.key
 *.csr
+*.crt
 
 # Documentation
 /Documentation
