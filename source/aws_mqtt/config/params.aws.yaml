@@ -13,7 +13,7 @@ broker:
     # Available at https://www.amazontrust.com/repository/AmazonRootCA1.pem
     # ca_certificate: ${PKG_PATH}/certs/AmazonCA.pem
 client:
-  id: user
+  id: user_aws
   # Whether or not to start a clean session with each reconnect.
   # If True, the server will forget all subscriptions with each reconnect.
   # Set False to request that the server resume an existing session or start
