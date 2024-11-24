@@ -40,16 +40,16 @@ bridge:
   # NOTE: It seems that AWS IOT only supports primitive topics. Using non-primitive
   # types results in the error message Connection to broker lost, will try to reconnect...
   ros2mqtt:
-    - mqtt_topic: /string/move_base/goal
-      ros_topic: /string/move_base/goal
-      primitive: true
-    - mqtt_topic: /string/move_base/cancel
-      ros_topic: /string/move_base/cancel
-      primitive: true
-  mqtt2ros:
     - ros_topic: /string/robotpose
       mqtt_topic: /string/robotpose
       primitive: true
     - ros_topic: /string/move_base/result
       mqtt_topic: /string/move_base/result
+      primitive: true
+  mqtt2ros:
+    - mqtt_topic: /string/move_base/goal
+      ros_topic: /string/move_base/goal
+      primitive: true
+    - mqtt_topic: /string/move_base/cancel
+      ros_topic: /string/move_base/cancel
       primitive: true
