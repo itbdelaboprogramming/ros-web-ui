@@ -12,7 +12,7 @@ class RobotPoseFromString:
 
         # Get topics from parameters
         self.string_topic = rospy.get_param('~string_topic', '/string/robotpose')
-        self.pose_topic = rospy.get_param('~pose_topic', '/robotpose')
+        self.pose_topic = rospy.get_param('~pose_topic', '/server/robot_pose')
 
         # Publisher
         self.pose_pub = rospy.Publisher(self.pose_topic, Pose, queue_size=10)

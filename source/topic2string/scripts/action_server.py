@@ -15,9 +15,9 @@ class ActionServer:
         self.goal_string_topic = rospy.get_param('~goal_string_topic', '/string/move_base/goal')
         self.cancel_string_topic = rospy.get_param('~cancel_string_topic', '/string/move_base/cancel')
         self.result_string_topic = rospy.get_param('~result_string_topic', '/string/move_base/result')
-        self.result_topic = rospy.get_param('~result_topic', '/move_base_convert/result')
-        self.goal_topic = rospy.get_param('~goal_topic', '/move_base_convert/goal')
-        self.cancel_topic = rospy.get_param('~cancel_topic', '/move_base_convert/cancel')
+        self.result_topic = rospy.get_param('~result_topic', '/server/move_base/result')
+        self.goal_topic = rospy.get_param('~goal_topic', '/server/move_base/goal')
+        self.cancel_topic = rospy.get_param('~cancel_topic', '/server/move_base/cancel')
 
         # Publisher for string topics
         self.goal_pub = rospy.Publisher(self.goal_string_topic, String, queue_size=10)
