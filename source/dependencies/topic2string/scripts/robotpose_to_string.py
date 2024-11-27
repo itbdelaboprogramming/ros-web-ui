@@ -51,7 +51,7 @@ class RobotPoseToString:
             pose_string = json.dumps(pose_dict)
 
             # Publish the string
-            rospy.loginfo(f"Publishing pose to {self.string_topic}")
+            # rospy.loginfo(f"Publishing pose to {self.string_topic}")
             self.string_pub.publish(String(data=pose_string))
 
 
