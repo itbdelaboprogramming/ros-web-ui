@@ -1,12 +1,12 @@
 <launch>
     <!-- Define the use_sim argument with default value true -->
-    <arg name="use_sim" default="true" />
+    <arg name="use_aws" default="true" />
 
     <!-- Launch for topic2string pkg launchfile -->
     <include file="$(find topic2string)/launch/msd.launch" />
 
     <!-- Conditionally launch aws_mqtt pkg launchfile if use_sim is false -->
-    <group if="$(eval not arg('use_sim'))">
+    <group if="$(arg use_aws)">
         <include file="$(find aws_mqtt)/launch/msd.launch" />
     </group>
     

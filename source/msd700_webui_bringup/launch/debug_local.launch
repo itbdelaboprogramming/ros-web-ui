@@ -1,0 +1,11 @@
+<launch>
+    <!-- Include msd700_webui_bringup launch file with use_aws=false -->
+    <include file="$(find msd700_webui_bringup)/launch/bringup_aws.launch">
+        <arg name="use_aws" value="false" />
+    </include>
+
+    <!-- Include msd700_webui_bringup launch file with use_aws=false -->
+    <include file="$(find msd700_webui_bringup)/launch/bringup_msd.launch">
+        <arg name="use_aws" value="false" />
+    </include>
+</launch>
