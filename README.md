@@ -38,6 +38,8 @@ This application is divided into two parts: msd system and aws system.
 To run the MSD system, you need to run the following command:
 ```bash
 roslaunch msd700_webui_bringup bringup_msd.launch
+
+roslaunch msd700_navigations msd700_navigation.launch open_rviz:=true use_simulator:=true
 ```
 
 ### AWS System

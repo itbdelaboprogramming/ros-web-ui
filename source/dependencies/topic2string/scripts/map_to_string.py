@@ -2,37 +2,31 @@
 
 import rospy
 import json
-from nav_msgs.srv import GetMap
+import hashlib
+from nav_msgs.msg import OccupancyGrid
 from std_msgs.msg import String
 
 
-class MapToStringService:
+class MapToString:
     def __init__(self):
-        rospy.init_node('map_to_string_service')
+        rospy.init_node('map_to_string')
 
         # Load parameters
         self.map_string_topic = rospy.get_param('~map_string_topic', '/string/map')
-        self.static_map_service = rospy.get_param('~static_map_service', '/static_map')
-        self.publish_frequency = rospy.get_param('~publish_frequency', 100.0)  # Default 2 Hz
+        self.map_topic = rospy.get_param('~map_topic', '/map')
 
         # Publisher for string topic
         self.map_string_pub = rospy.Publisher(self.map_string_topic, String, queue_size=10)
 
-        # Wait for the service to be available
-        rospy.loginfo(f"Waiting for service {self.static_map_service}...")
-        rospy.wait_for_service(self.static_map_service)
-        self.get_map_service = rospy.ServiceProxy(self.static_map_service, GetMap)
-        rospy.loginfo(f"Connected to service {self.static_map_service}")
+        # Subscriber for map topic
+        rospy.Subscriber(self.map_topic, OccupancyGrid, self.map_callback)
 
-        # Set up periodic publishing
-        self.timer = rospy.Timer(rospy.Duration(1.0 / self.publish_frequency), self.timer_callback)
+        # Initialize hash for map comparison
+        self.last_map_hash = None
+        rospy.loginfo(f"Listening to {self.map_topic} and publishing changes to {self.map_string_topic}")
 
-    def timer_callback(self, event):
+    def map_callback(self, map_msg):
         try:
-            # Call the service
-            response = self.get_map_service()
-            map_msg = response.map
-
             # Convert OccupancyGrid to dictionary
             map_dict = {
                 "header": {
@@ -62,20 +56,23 @@ class MapToStringService:
                 "data": map_msg.data,  # OccupancyGrid data array
             }
 
-            # Convert dictionary to JSON string
-            map_string = json.dumps(map_dict)
+            # Compute hash of the map
+            current_map_hash = hashlib.md5(json.dumps(map_dict, sort_keys=True).encode()).hexdigest()
 
-            # Publish JSON string
-            rospy.loginfo(f"Publishing map string to {self.map_string_topic}")
-            self.map_string_pub.publish(map_string)
+            # Publish only if the map has changed
+            if current_map_hash != self.last_map_hash:
+                self.last_map_hash = current_map_hash
+                map_string = json.dumps(map_dict)
+                self.map_string_pub.publish(map_string)
+                rospy.loginfo("Published updated map string.")
 
-        except rospy.ServiceException as e:
-            rospy.logerr(f"Service call to {self.static_map_service} failed: {e}")
+        except Exception as e:
+            rospy.logerr(f"Error processing map data: {e}")
 
 
 if __name__ == '__main__':
     try:
-        MapToStringService()
+        MapToString()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
