@@ -221,6 +221,9 @@ catkin_install_python(PROGRAMS
 
   scripts/map_to_string.py
   scripts/map_from_string.py
+
+  scripts/mapping_serializer.py
+  scripts/mapping_deserializer.py
   
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

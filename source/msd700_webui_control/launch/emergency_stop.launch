@@ -1,0 +1,18 @@
+<launch>
+    <!-- Define Arguments -->
+    <arg name="start_topic" default="/mapping/Start" />
+    <arg name="pause_topic" default="/mapping/Pause" />
+    <arg name="stop_topic" default="/mapping/Stop" />
+    <arg name="emergency_topic" default="/mux/emergency_vel" />
+    <arg name="publish_frequency" default="10.0" />
+
+    <!-- Set Parameters using rosparam -->
+    <param name="start_topic" value="$(arg start_topic)" />
+    <param name="pause_topic" value="$(arg pause_topic)" />
+    <param name="stop_topic" value="$(arg stop_topic)" />
+    <param name="emergency_topic" value="$(arg emergency_topic)" />
+    <param name="publish_frequency" value="$(arg publish_frequency)" />
+
+    <!-- Launch Node -->
+    <node pkg="msd700_webui_control" type="emergency_stop_node" name="emergency_stop_node" output="screen" />
+</launch>

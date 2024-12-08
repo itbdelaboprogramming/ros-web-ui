@@ -1,0 +1,4 @@
+particle_align_params:
+  std_dev_threshold: 0.2
+  allign_topic: /client/allign
+  particlecloud_topic: /particlecloud

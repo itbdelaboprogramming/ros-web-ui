@@ -11,7 +11,7 @@ class RobotPoseToString:
         rospy.init_node('robotpose_to_string')
 
         # Get parameters
-        self.pose_topic = rospy.get_param('~pose_topic', '/msd/robotpose')
+        self.pose_topic = rospy.get_param('~pose_topic', '/client/robotpose')
         self.string_topic = rospy.get_param('~string_topic', '/string/robotpose')
         self.publish_frequency = rospy.get_param('~publish_frequency', 2.0)  # Default 2 Hz
 

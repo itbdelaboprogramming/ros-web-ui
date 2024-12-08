@@ -7,5 +7,11 @@
 
     <node name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket" output="screen">
     </node>
+
+    <node name="map_from_string" pkg="topic2string" type="map_from_string.py" output="screen">
+    </node>
+
+    <node name="mapping_serializer" pkg="topic2string" type="mapping_serializer.py" output="screen">
+    </node>
     
 </launch>

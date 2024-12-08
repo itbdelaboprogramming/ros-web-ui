@@ -6,9 +6,13 @@
     </node>
 
     <node name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" output="screen">
-        <remap from="/robot_pose" to="/msd/robotpose"/>
+        <remap from="/robot_pose" to="/client/robotpose"/>
     </node>
 
-    <!-- <node name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
-    </node> -->
+    <node name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
+    </node>
+
+    <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
+    </node>
+
 </launch>
