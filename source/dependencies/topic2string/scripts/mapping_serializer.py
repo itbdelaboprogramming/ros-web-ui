@@ -30,7 +30,12 @@ class MappingSerializer:
         rospy.Subscriber(self.stop_topic, Bool, self.callback, self.stop_topic)
 
     def callback(self, msg, topic_name):
+        
         self.mapping_data[topic_name] = msg.data
+        
+        for key in self.mapping_data.keys():
+            if key != topic_name:
+                self.mapping_data[key] = False
 
         # Serialize data to JSON
         serialized_data = json.dumps(self.mapping_data)

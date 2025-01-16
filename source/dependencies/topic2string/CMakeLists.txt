@@ -224,6 +224,10 @@ catkin_install_python(PROGRAMS
 
   scripts/mapping_serializer.py
   scripts/mapping_deserializer.py
+
+  scripts/mapping_instr_serializer.py
+  scripts/mapping_instr_deserializer.py
+  scripts/mapping_instr.py
   
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

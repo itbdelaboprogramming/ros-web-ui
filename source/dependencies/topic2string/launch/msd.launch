@@ -12,7 +12,13 @@
     <node name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
     </node>
 
-    <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
+    <!-- <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
+    </node> -->
+
+    <node name="mapping_deserializer" pkg="topic2string" type="mapping_instr_deserializer.py" output="screen">
+    </node>
+
+    <node name="mapping_instr" pkg="topic2string" type="mapping_instr.py" output="screen">
     </node>
 
 </launch>
