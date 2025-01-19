@@ -8,6 +8,9 @@
     <!-- Launch for msd700 control -->
     <include file="$(find msd700_webui_control)/launch/emergency_stop.launch" />
 
+    <!-- Launch particle align validator -->
+    <include file="$(find msd700_webui_control)/launch/particle_align_validator.launch" />
+
     <!-- Conditionally launch aws_mqtt pkg launchfile if use_sim is false -->
     <group if="$(arg use_aws)">
         <include file="$(find aws_mqtt)/launch/msd.launch" />

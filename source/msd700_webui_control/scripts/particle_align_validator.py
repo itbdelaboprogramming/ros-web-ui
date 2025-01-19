@@ -18,11 +18,10 @@ class ParticleAlignValidator:
             rospy.signal_shutdown("Missing parameters.")
             return
 
-        rospy.loginfo("Loaded particle_align_params: %s", params)
-
         self.std_dev_threshold = params.get('std_dev_threshold', 0.5)
         self.allign_topic = params.get('allign_topic', '/client/allign')
         self.particlecloud_topic = params.get('particlecloud_topic', '/particlecloud')
+        self.check_allign_service = params.get('check_allign_service', '/check_alignment')
 
         # ROS publishers and subscribers
         self.allign_pub = rospy.Publisher(self.allign_topic, Bool, queue_size=10)
@@ -30,9 +29,16 @@ class ParticleAlignValidator:
 
         # Initialize service
         self.is_alligned = False  # Default alignment status
-        rospy.Service('check_alignment', Trigger, self.handle_check_alignment)
+        rospy.Service(self.check_allign_service, Trigger, self.handle_check_alignment)
 
         rospy.loginfo("Node initialized with std_dev_threshold: %f", self.std_dev_threshold)
+        
+        # Print Info all Parameters
+        rospy.loginfo("Particle Align Validator initialized with:")
+        rospy.loginfo("  std_dev_threshold: %f", self.std_dev_threshold)
+        rospy.loginfo("  Allign topic: %s", self.allign_topic)
+        rospy.loginfo("  Particlecloud topic: %s", self.particlecloud_topic)
+        rospy.loginfo("  Check allign service: %s", self.check_allign_service)
 
     def particlecloud_callback(self, msg):
         # Extract positions from PoseArray

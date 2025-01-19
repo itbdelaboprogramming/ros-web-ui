@@ -4,4 +4,8 @@
 
     <!-- Launch the Particle Align Validator node -->
     <node pkg="msd700_webui_control" type="particle_align_validator.py" name="particle_align_validator" output="screen" />
+
+    <!-- Launch the align check node -->
+    <node pkg="msd700_webui_control" type="align_checker.py" name="align_checker" output="screen" />
+    
 </launch>

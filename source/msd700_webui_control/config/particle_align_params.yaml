@@ -2,3 +2,14 @@ particle_align_params:
   std_dev_threshold: 0.1
   allign_topic: /client/allign
   particlecloud_topic: /particlecloud
+  check_allign_service: /check_alignment
+
+align_control_params:
+  check_frequency: 10.0 # Hz
+  timeout: 10.0 # seconds
+  rotation_speed: 0.1 # rad/s
+  alignment_topic: /check_alignment
+  cmd_vel_topic: /cmd_vel
+  service_start: /alignment/start
+  service_reset: /alignment/reset
+  service_allign_status: /client/allign

@@ -8,25 +8,37 @@ from std_msgs.msg import Bool
 class RobotAlignmentController:
     def __init__(self):
         rospy.init_node('robot_alignment_controller', anonymous=False)
+        
+        # Get nested parameters
+        params = rospy.get_param('/align_control_params', None)
+        if params is None:
+            rospy.logerr("Parameter '/align_control_params' not loaded. Check your YAML file and launch file.")
+            rospy.signal_shutdown("Missing parameters.")
+            return
 
         # Load parameters
-        self.check_frequency = rospy.get_param('~check_frequency', 1.0)  # Frequency in Hz
-        self.timeout = rospy.get_param('~timeout', 30.0)  # Timeout in seconds
-        self.rotation_speed = rospy.get_param('~rotation_speed', 0.5)  # Rotation speed for z-axis
-        self.alignment_topic = rospy.get_param('~alignment_topic', '/check_alignment')
-        self.cmd_vel_topic = rospy.get_param('~cmd_vel_topic', '/mux/allign')
+        self.check_frequency = params.get('check_frequency', 1.0)  # Frequency in Hz
+        self.timeout = params.get('timeout', 30.0)  # Timeout in seconds
+        self.rotation_speed = params.get('rotation_speed', 0.5)  # Rotation speed for z-axis
+        self.alignment_topic = params.get('alignment_topic', '/check_alignment')
+        self.cmd_vel_topic = params.get('cmd_vel_topic', '/mux/allign')
+        self.service_start = params.get('service_start', '/alignment/start')
+        self.service_reset = params.get('service_reset', '/alignment/reset')
+        self.service_allign_status = params.get('service_allign_status', '/client/allign')
 
         # State variables
         self.aligned = False
         self.rotation_active = False
         self.last_attempt_time = rospy.Time.now()
+        self.is_active = False  # Added state to control active status
 
-        # Publishers and Service
+        # Publishers and Services
         self.cmd_vel_pub = rospy.Publisher(self.cmd_vel_topic, Twist, queue_size=10)
-        rospy.Service('/reset_alignment', Trigger, self.reset_alignment_service)
+        rospy.Service(self.service_reset, Trigger, self.reset_alignment_service)
+        rospy.Service(self.service_start, Trigger, self.start_alignment_service)
 
         # Subscriber to alignment status
-        rospy.Subscriber('/client/allign', Bool, self.alignment_status_callback)
+        rospy.Subscriber(self.service_allign_status, Bool, self.alignment_status_callback)
 
         # Timer for checking alignment
         self.timer = rospy.Timer(rospy.Duration(1.0 / self.check_frequency), self.check_alignment)
@@ -34,12 +46,23 @@ class RobotAlignmentController:
         rospy.loginfo("Robot Alignment Controller initialized with:")
         rospy.loginfo("  Check frequency: %f Hz", self.check_frequency)
         rospy.loginfo("  Timeout: %f seconds", self.timeout)
+        rospy.loginfo("  Rotation speed: %f", self.rotation_speed)
+        rospy.loginfo("  Alignment topic: %s", self.alignment_topic)
+        rospy.loginfo("  Command velocity topic: %s", self.cmd_vel_topic)
+        rospy.loginfo("  Service start: %s", self.service_start)
+        rospy.loginfo("  Service reset: %s", self.service_reset)
+        rospy.loginfo("  Service alignment status: %s", self.service_allign_status)
+        
 
     def alignment_status_callback(self, msg):
         self.aligned = msg.data
         rospy.loginfo("Alignment status updated: %s", self.aligned)
 
     def check_alignment(self, event):
+        if not self.is_active:
+            rospy.loginfo_throttle(5, "Waiting for start command.")
+            return
+
         if self.aligned:
             rospy.loginfo("Robot already aligned. No action required.")
             self.stop_rotation()
@@ -68,10 +91,17 @@ class RobotAlignmentController:
             rospy.loginfo("Stopped rotation commands.")
 
     def reset_alignment_service(self, req):
-        rospy.loginfo("Resetting alignment attempts.")
+        rospy.loginfo("Resetting alignment attempts. Entering idle mode.")
         self.last_attempt_time = rospy.Time.now()
         self.rotation_active = False
+        self.is_active = False
         return TriggerResponse(success=True, message="Alignment reset initiated.")
+
+    def start_alignment_service(self, req):
+        rospy.loginfo("Starting alignment process.")
+        self.is_active = True
+        self.last_attempt_time = rospy.Time.now()
+        return TriggerResponse(success=True, message="Alignment process started.")
 
 if __name__ == '__main__':
     try:

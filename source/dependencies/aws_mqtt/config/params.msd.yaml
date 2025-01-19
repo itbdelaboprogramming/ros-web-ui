@@ -46,6 +46,9 @@ bridge:
     - ros_topic: /string/move_base/result
       mqtt_topic: /string/move_base/result
       primitive: true
+    - ros_topic: /string/map
+      mqtt_topic: /string/map
+      primitive: true
   mqtt2ros:
     - mqtt_topic: /string/move_base/goal
       ros_topic: /string/move_base/goal
