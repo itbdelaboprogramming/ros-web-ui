@@ -10,6 +10,10 @@
     </node>
 
     <node name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
+        <param name="map_string_topic" value="/string/map" />
+        <param name="map_topic" value="/map" />
+        <param name="publish_rate" value="0.5" />
+        <param name="debug" value="true" />
     </node>
 
     <!-- <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
