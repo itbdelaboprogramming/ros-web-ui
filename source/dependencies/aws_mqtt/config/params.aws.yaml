@@ -46,6 +46,9 @@ bridge:
     - mqtt_topic: /string/move_base/cancel
       ros_topic: /string/move_base/cancel
       primitive: true
+    - mqtt_topic: /string/mappingInstruc
+      ros_topic: /string/mappingInstruc
+      primitive: true
   mqtt2ros:
     - ros_topic: /string/robotpose
       mqtt_topic: /string/robotpose

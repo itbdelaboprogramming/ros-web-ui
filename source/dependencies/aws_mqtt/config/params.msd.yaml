@@ -59,4 +59,7 @@ bridge:
     - mqtt_topic: /string/map
       ros_topic: /string/map
       primitive: true
+    - mqtt_topic: /string/mappingInstruc
+      ros_topic: /string/mappingInstruc
+      primitive: true
     
