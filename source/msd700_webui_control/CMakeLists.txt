@@ -28,6 +28,7 @@ include_directories(
 catkin_install_python(PROGRAMS 
   scripts/particle_align_validator.py
   scripts/align_checker.py
+  scripts/map_saver.py
   
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

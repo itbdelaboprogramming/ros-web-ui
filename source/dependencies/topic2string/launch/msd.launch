@@ -1,15 +1,18 @@
 <launch>
-    <node name="action_client" pkg="topic2string" type="action_client.py" output="screen">
+
+    <arg name="namespace" default="msd" />
+
+    <node ns="$(arg namespace)" name="action_client" pkg="topic2string" type="action_client.py" output="screen">
     </node>
 
-    <node name="robotpose_msd" pkg="topic2string" type="robotpose_to_string.py" output="screen">
+    <node ns="$(arg namespace)" name="robotpose_msd" pkg="topic2string" type="robotpose_to_string.py" output="screen">
     </node>
 
-    <node name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" output="screen">
+    <node ns="$(arg namespace)" name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" output="screen">
         <remap from="/robot_pose" to="/client/robotpose"/>
     </node>
 
-    <node name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
+    <node ns="$(arg namespace)" name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
         <param name="map_string_topic" value="/string/map" />
         <param name="map_topic" value="/map" />
         <param name="publish_rate" value="0.5" />
@@ -19,10 +22,10 @@
     <!-- <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
     </node> -->
 
-    <node name="mapping_deserializer" pkg="topic2string" type="mapping_instr_deserializer.py" output="screen">
+    <node ns="$(arg namespace)" name="mapping_deserializer" pkg="topic2string" type="mapping_instr_deserializer.py" output="screen">
     </node>
 
-    <node name="mapping_instr" pkg="topic2string" type="mapping_instr.py" output="screen">
+    <node ns="$(arg namespace)" name="mapping_instr" pkg="topic2string" type="mapping_instr.py" output="screen">
     </node>
 
 </launch>

@@ -1,0 +1,12 @@
+<launch>
+
+    <arg name="is_local" default="true" />
+
+    <!-- Load parameters from a YAML file -->
+    <rosparam if="$(arg is_local)" file="$(find msd700_webui_control)/config/map_saver_local.yaml" command="load" />
+    <rosparam unless="$(arg is_local)" file="$(find msd700_webui_control)/config/map_saver_cloud.yaml" command="load" />
+
+    <!-- Launch the map_saver_node -->
+    <node name="map_saver_node" pkg="msd700_webui_control" type="map_saver.py" output="screen" />
+    
+</launch>

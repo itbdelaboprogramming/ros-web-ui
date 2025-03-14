@@ -1,0 +1,5 @@
+map_saver:
+  map_name: testing
+  save_path: /home/farhan-sw/Documents/GitHub/ros-web-ui-ws/src/ros-web-ui/map
+  threshold_occupied: 90
+  # threshold_free: 1

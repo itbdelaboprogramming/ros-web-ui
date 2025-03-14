@@ -1,4 +1,6 @@
 <launch>
+    <arg name="namespace" default="msd" />
+
     <!-- Define Arguments -->
     <arg name="start_topic" default="/mapping/Start" />
     <arg name="pause_topic" default="/mapping/Pause" />
@@ -14,5 +16,5 @@
     <param name="publish_frequency" value="$(arg publish_frequency)" />
 
     <!-- Launch Node -->
-    <node pkg="msd700_webui_control" type="emergency_stop_node" name="emergency_stop_node" output="screen" />
+    <node ns="$(arg namespace)" pkg="msd700_webui_control" type="emergency_stop_node" name="emergency_stop_node" output="screen" />
 </launch>

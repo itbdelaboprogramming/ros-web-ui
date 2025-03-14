@@ -1,4 +1,5 @@
 <launch>
+
     <!-- Define the use_sim argument with default value true -->
     <arg name="use_aws" default="true" />
 

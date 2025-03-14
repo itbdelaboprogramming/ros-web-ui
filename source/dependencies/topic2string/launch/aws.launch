@@ -1,20 +1,23 @@
 <launch>
-    <node name="action_server" pkg="topic2string" type="action_server.py" output="screen">
+
+    <arg name="namespace" default="aws" />
+
+    <node ns="$(arg namespace)" name="action_server" pkg="topic2string" type="action_server.py" output="screen">
     </node>
 
-    <node name="robotpose_server" pkg="topic2string" type="robotpose_from_string.py" output="screen">
+    <node ns="$(arg namespace)" name="robotpose_server" pkg="topic2string" type="robotpose_from_string.py" output="screen">
     </node>
 
-    <node name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket" output="screen">
+    <node ns="$(arg namespace)" name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket" output="screen">
     </node>
 
-    <node name="map_from_string" pkg="topic2string" type="map_from_string.py" output="screen">
+    <node ns="$(arg namespace)" name="map_from_string" pkg="topic2string" type="map_from_string.py" output="screen">
     </node>
 
-    <!-- <node name="mapping_serializer" pkg="topic2string" type="mapping_serializer.py" output="screen">
+    <!-- <node ns="$(arg namespace)" name="mapping_serializer" pkg="topic2string" type="mapping_serializer.py" output="screen">
     </node> -->
 
-    <node name="mapping_serializer" pkg="topic2string" type="mapping_instr_serializer.py" output="screen">
+    <node ns="$(arg namespace)" name="mapping_serializer" pkg="topic2string" type="mapping_instr_serializer.py" output="screen">
     </node>
     
 </launch>

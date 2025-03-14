@@ -1,11 +1,13 @@
 <launch>
+    <arg name="namespace" default="msd" />
+
     <!-- Load parameters from YAML -->
     <rosparam file="$(find msd700_webui_control)/config/particle_align_params.yaml" command="load" />
 
     <!-- Launch the Particle Align Validator node -->
-    <node pkg="msd700_webui_control" type="particle_align_validator.py" name="particle_align_validator" output="screen" />
+    <node ns="$(arg namespace)" pkg="msd700_webui_control" type="particle_align_validator.py" name="particle_align_validator" output="screen" />
 
     <!-- Launch the align check node -->
-    <node pkg="msd700_webui_control" type="align_checker.py" name="align_checker" output="screen" />
+    <node ns="$(arg namespace)" pkg="msd700_webui_control" type="align_checker.py" name="align_checker" output="screen" />
     
 </launch>
