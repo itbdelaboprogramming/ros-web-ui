@@ -1,4 +1,5 @@
 <launch>
+    <arg name="namespace" default="msd" />
 
     <arg name="is_local" default="true" />
 
@@ -7,6 +8,6 @@
     <rosparam unless="$(arg is_local)" file="$(find msd700_webui_control)/config/map_saver_cloud.yaml" command="load" />
 
     <!-- Launch the map_saver_node -->
-    <node name="map_saver_node" pkg="msd700_webui_control" type="map_saver.py" output="screen" />
+    <node ns="$(arg namespace)" name="map_saver_node" pkg="msd700_webui_control" type="map_saver.py" output="screen" />
     
 </launch>
