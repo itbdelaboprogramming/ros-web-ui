@@ -30,5 +30,8 @@ bridge:
       primitive: true
     - mqtt_topic: /string/mappingInstruc
       ros_topic: /string/mappingInstruc
+      primitive: 
+    - mqtt_topic: /map_saver/save_set_map
+      ros_topic: /map_saver/save_set_map
       primitive: true
     
