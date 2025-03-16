@@ -1,0 +1,34 @@
+# YAML alias for MQTT SSL version.
+# The supported values are defined at:
+# https://github.com/eclipse/paho.mqtt.cpp/blob/master/src/mqtt/ssl_options.h#L305
+
+broker:
+  host: localhost
+  port: 1883
+
+bridge:
+  # types results in the error message Connection to broker lost, will try to reconnect...
+  ros2mqtt:
+    - ros_topic: /string/robotpose
+      mqtt_topic: /string/robotpose
+      primitive: true
+    - ros_topic: /string/move_base/result
+      mqtt_topic: /string/move_base/result
+      primitive: true
+    - ros_topic: /string/map
+      mqtt_topic: /string/map
+      primitive: true
+    - ros_topic: /pingpong_msd
+      mqtt_topic: /pingpong
+      primitive: true
+  mqtt2ros:
+    - mqtt_topic: /string/move_base/goal
+      ros_topic: /string/move_base/goal
+      primitive: true
+    - mqtt_topic: /string/move_base/cancel
+      ros_topic: /string/move_base/cancel
+      primitive: true
+    - mqtt_topic: /string/mappingInstruc
+      ros_topic: /string/mappingInstruc
+      primitive: true
+    

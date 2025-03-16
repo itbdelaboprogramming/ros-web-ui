@@ -1,0 +1,32 @@
+broker:
+  host: localhost
+  port: 1883
+
+client:
+  id: user_aws
+
+bridge:
+  # types results in the error message Connection to broker lost, will try to reconnect...
+  ros2mqtt:
+    - mqtt_topic: /string/move_base/goal
+      ros_topic: /string/move_base/goal
+      primitive: true
+    - mqtt_topic: /string/move_base/cancel
+      ros_topic: /string/move_base/cancel
+      primitive: true
+    - mqtt_topic: /string/mappingInstruc
+      ros_topic: /string/mappingInstruc
+      primitive: true
+  mqtt2ros:
+    - ros_topic: /string/robotpose
+      mqtt_topic: /string/robotpose
+      primitive: true
+    - ros_topic: /string/move_base/result
+      mqtt_topic: /string/move_base/result
+      primitive: true
+    - ros_topic: /string/map
+      mqtt_topic: /string/map
+      primitive: true
+    - ros_topic: /pingpong_aws
+      mqtt_topic: /pingpong
+      primitive: true
