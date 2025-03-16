@@ -28,4 +28,9 @@
     <node ns="$(arg namespace)" name="mapping_instr" pkg="topic2string" type="mapping_instr.py" output="screen">
     </node>
 
+    <node ns="$(arg namespace)" name="mode_deserialize" pkg="topic2string" type="change_mode_deserialize.py" output="screen">
+        <param name="input_topic" value="/string/change_mode" />
+        <param name="service_name" value="change_mode" />
+    </node>
+
 </launch>

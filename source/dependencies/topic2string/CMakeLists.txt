@@ -228,6 +228,9 @@ catkin_install_python(PROGRAMS
   scripts/mapping_instr_serializer.py
   scripts/mapping_instr_deserializer.py
   scripts/mapping_instr.py
+
+  scripts/change_mode_deserialize.py
+  scripts/change_mode_serialize.py
   
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
