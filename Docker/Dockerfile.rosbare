@@ -34,8 +34,13 @@ RUN apt-get update \
 RUN mkdir -p "/home/$USERNAME/ros-web-ui-ws/src"
 
 # Clone the workspace and build it using catkin_make
+# RUN cd "/home/$USERNAME/ros-web-ui-ws/src" \
+#     && git clone https://github.com/itbdelaboprogramming/ros-web-ui.git \
+#     && cd "/home/$USERNAME/ros-web-ui-ws" \
+#     && /bin/bash -c "source /opt/ros/noetic/setup.bash && rosdep install --from-paths src --ignore-src -r -y && catkin_make"
+
+# Clone the workspace and build it using catkin_make
 RUN cd "/home/$USERNAME/ros-web-ui-ws/src" \
-    && git clone https://github.com/itbdelaboprogramming/ros-web-ui.git \
     && cd "/home/$USERNAME/ros-web-ui-ws" \
     && /bin/bash -c "source /opt/ros/noetic/setup.bash && rosdep install --from-paths src --ignore-src -r -y && catkin_make"
 
