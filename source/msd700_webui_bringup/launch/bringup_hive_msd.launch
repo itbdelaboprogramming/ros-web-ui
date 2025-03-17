@@ -1,7 +1,7 @@
 <launch>
 
     <!-- Define the use_sim argument with default value true -->
-    <arg name="use_aws" default="true" />
+    <arg name="use_hive" default="true" />
 
     <!-- Launch for topic2string pkg launchfile -->
     <include file="$(find topic2string)/launch/msd.launch" />
@@ -13,8 +13,8 @@
     <include file="$(find msd700_webui_control)/launch/particle_align_validator.launch" />
 
     <!-- Conditionally launch aws_mqtt pkg launchfile if use_sim is false -->
-    <group if="$(arg use_aws)">
-        <include file="$(find aws_mqtt)/launch/msd.launch" />
+    <group if="$(arg use_hive)">
+        <include file="$(find aws_mqtt)/launch/hive_msd.launch" />
     </group>
     
 </launch>
