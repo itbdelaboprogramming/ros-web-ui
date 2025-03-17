@@ -6,6 +6,6 @@
   <node pkg="nodelet" type="nodelet" name="$(arg node_name)" ns="$(arg namespace)" args="standalone mqtt_client/MqttClient" output="screen">
  
     <!-- Load other parameters from the YAML file -->
-    <rosparam command="load" file="$(find aws_mqtt)/config/hive_params.aws.yaml" />
+    <rosparam command="load" file="$(find aws_mqtt)/config/hive_params.client.yaml" />
   </node>
 </launch>
