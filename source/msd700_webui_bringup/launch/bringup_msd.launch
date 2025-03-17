@@ -1,0 +1,20 @@
+<launch>
+
+    <!-- Define the use_sim argument with default value true -->
+    <arg name="use_aws" default="true" />
+
+    <!-- Launch for topic2string pkg launchfile -->
+    <include file="$(find topic2string)/launch/msd.launch" />
+
+    <!-- Launch for msd700 control -->
+    <include file="$(find msd700_webui_control)/launch/emergency_stop.launch" />
+
+    <!-- Launch particle align validator -->
+    <include file="$(find msd700_webui_control)/launch/particle_align_validator.launch" />
+
+    <!-- Conditionally launch aws_mqtt pkg launchfile if use_sim is false -->
+    <group if="$(arg use_aws)">
+        <include file="$(find aws_mqtt)/launch/aws_msd.launch" />
+    </group>
+    
+</launch>
