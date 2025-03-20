@@ -9,9 +9,9 @@ current_simulation = False
 
 def is_provided(s):
     """
-    Mengembalikan True jika nilai s valid:
-      - Untuk string: valid jika tidak kosong (setelah di-strip).
-      - Untuk boolean: jika tidak None.
+    Returns True if the value of s is valid:
+      - For strings: valid if not empty (after stripping).
+      - For booleans: valid if not None.
     """
     if s is None:
         return False
@@ -21,15 +21,15 @@ def is_provided(s):
 
 def build_roslaunch_command(mode_msg):
     """
-    Menyusun roslaunch berdasarkan mode dan parameter.
+    Construct roslaunch command based on mode and parameters.
     
-    Untuk mode 'navigation':
-      - Jika map_file dan point_mode disediakan, maka :
+    For 'navigation' mode:
+      - If map_file and point_mode are provided, then:
           roslaunch msd700_navigations msd700_navigation.launch map_file:={MAP_FILE}.yaml point_mode:={POINT_MODE} use_simulator:=<value>
-      - Jika tidak, maka gunakan parameter :
+      - If not, use the parameters:
           roslaunch msd700_navigations msd700_navigation.launch open_rviz:=<value> use_simulator:=<value>
-    Untuk mode 'slam' dan 'explore', perintahnya:
-          roslaunch msd700_navigations msd700_slam.launch (atau explore) open_rviz:=<value> use_simulator:=<value>
+    For 'slam' and 'explore' modes, the command is:
+          roslaunch msd700_navigations msd700_slam.launch (or explore) open_rviz:=<value> use_simulator:=<value>
     """
     package_name = "msd700_navigations"
     arg_list = []
@@ -58,7 +58,7 @@ def build_roslaunch_command(mode_msg):
         if is_provided(mode_msg.use_simulator):
             arg_list.append("use_simulator:={}".format(str(mode_msg.use_simulator).lower()))
     else:
-        rospy.logerr("Mode tidak valid untuk membangun perintah: %s", mode_msg.mode)
+        rospy.logerr("Invalid mode to construct the command: %s", mode_msg.mode)
         return None, None
 
     # Susun command list: ["roslaunch", package_name, launch_file_name, arg1, arg2, ...]
@@ -68,8 +68,8 @@ def build_roslaunch_command(mode_msg):
 
 def start_launch(mode_msg):
     """
-    Menjalankan proses roslaunch berdasarkan parameter pada mode_msg.
-    Menentukan status simulasi (current_simulation) berdasarkan use_simulator.
+    Runs the roslaunch process based on the parameters in mode_msg.
+    Determines the simulation status (current_simulation) based on use_simulator.
     """
     global current_simulation
     # Tentukan apakah simulasi aktif
@@ -85,34 +85,34 @@ def start_launch(mode_msg):
     if cmd_list is None:
         return None
 
-    rospy.loginfo("Akan menjalankan instruksi: %s", cmd_display)
+    rospy.loginfo("Executing command: %s", cmd_display)
     
     try:
         process = subprocess.Popen(cmd_list)
-        rospy.loginfo("Launch file untuk mode '%s' dijalankan.", mode_msg.mode)
+        rospy.loginfo("Launch file for mode '%s' has been started.", mode_msg.mode)
         return process
     except Exception as e:
-        rospy.logerr("Gagal menjalankan roslaunch: %s", str(e))
+        rospy.logerr("Failed to execute roslaunch: %s", str(e))
         return None
 
 def kill_simulation_processes():
     """
-    Menjalankan perintah 'killall gzserver gzclient' untuk membersihkan proses simulator.
+    Executes the 'killall gzserver gzclient' command to clean up simulator processes.
     """
     try:
         subprocess.call(["killall", "gzserver", "gzclient"])
-        rospy.loginfo("Perintah killall gzserver gzclient dijalankan.")
+        rospy.loginfo("Command 'killall gzserver gzclient' executed.")
     except Exception as e:
-        rospy.logerr("Gagal menjalankan killall: %s", str(e))
+        rospy.logerr("Failed to execute killall: %s", str(e))
 
 def shutdown_current_launch():
     """
-    Menghentikan proses roslaunch yang sedang aktif.
-    Jika simulasi aktif, setelah proses dihentikan juga memanggil killall untuk simulator.
+    Stops the currently active roslaunch process.
+    If a simulation is active, after stopping the process, it also calls killall for the simulator.
     """
     global current_launch, current_simulation
     if current_launch is not None:
-        rospy.loginfo("Mematikan launch file yang sedang berjalan.")
+        rospy.loginfo("Shutting down the currently running launch file.")
         current_launch.terminate()
         try:
             current_launch.wait(timeout=5)
@@ -125,15 +125,15 @@ def shutdown_current_launch():
 
 def process_switch(mode_msg):
     """
-    Memproses perintah switching:
-      - Jika mode di-set ke 'idle', maka hanya mematikan proses yang aktif (tanpa menjalankan perintah roslaunch).
-      - Untuk mode lain, mematikan proses yang ada lalu menjalankan roslaunch baru.
+    Processes the switching command:
+      - If the mode is set to 'idle', it only stops the active process (without running a new roslaunch command).
+      - For other modes, it stops the existing process and then starts a new roslaunch command.
     """
     global current_launch
     # Mode idle: matikan semua proses dan kembali idle
     if mode_msg.mode.strip().lower() == "idle":
         shutdown_current_launch()
-        rospy.loginfo("Mode 'idle' dijalankan: Semua proses dimatikan, sistem dalam keadaan idle.")
+        rospy.loginfo("Mode 'idle' executed: All processes stopped, system is now idle.")
         return True
     else:
         shutdown_current_launch()
@@ -142,16 +142,16 @@ def process_switch(mode_msg):
 
 def service_callback(req):
     if process_switch(req.mode_msg):
-        message = "Berhasil switch ke mode: {}".format(req.mode_msg.mode)
+        message = "Successfully switched to mode: {}".format(req.mode_msg.mode)
         return SwitchModeResponse(success=True, message=message)
     else:
         return SwitchModeResponse(success=False, message="Gagal switch mode.")
 
 def topic_callback(msg):
     if process_switch(msg):
-        rospy.loginfo("Berhasil switch ke mode '%s' via topik.", msg.mode)
+        rospy.loginfo("Successfully switched to mode '%s' via topic.", msg.mode)
     else:
-        rospy.logerr("Gagal switch ke mode '%s' via topik.", msg.mode)
+        rospy.logerr("Failed to switch to mode '%s' via topic.", msg.mode)
 
 def main():
     rospy.init_node('switch_mode_node')
@@ -161,7 +161,7 @@ def main():
     # Inisiasi subscriber ke topik dengan tipe SwitchModeMsg
     rospy.Subscriber('switch_mode_topic', SwitchModeMsg, topic_callback)
     
-    rospy.loginfo("Node switch_mode_node stanby")
+    rospy.loginfo("Node switch_mode_node standby")
     
     rospy.spin()
     shutdown_current_launch()
