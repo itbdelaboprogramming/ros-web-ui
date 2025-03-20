@@ -1,0 +1,4 @@
+msd700_webui_msg/SwitchModeMsg mode_msg
+---
+bool success
+string message

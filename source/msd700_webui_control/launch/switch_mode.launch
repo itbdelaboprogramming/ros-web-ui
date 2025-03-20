@@ -1,0 +1,8 @@
+<launch>
+    <arg name="namespace" default="msd" />
+
+    <!-- Launch the Particle Align Validator node -->
+    <node ns="$(arg namespace)" pkg="msd700_webui_control" type="switch_mode.py" name="switch_mode" output="screen" />
+
+
+</launch>

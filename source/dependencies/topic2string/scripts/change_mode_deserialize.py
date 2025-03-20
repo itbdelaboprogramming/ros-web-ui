@@ -2,8 +2,8 @@
 import rospy
 import json
 from std_msgs.msg import String
-from msd700_msg.msg import SwitchModeMsg
-from msd700_msg.srv import SwitchMode
+from msd700_webui_msg.msg import SwitchModeMsg
+from msd700_webui_msg.srv import SwitchMode
 
 class ChangeModeServiceNode:
     def __init__(self):

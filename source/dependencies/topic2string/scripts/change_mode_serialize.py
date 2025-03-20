@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import rospy
 import json
-from msd700_msg.msg import SwitchModeMsg
+from msd700_webui_msg.msg import SwitchModeMsg
 from std_msgs.msg import String
 
 class ChangeModeSerializeNode:
