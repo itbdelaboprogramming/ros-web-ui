@@ -35,10 +35,10 @@ class MapSaverNode:
         
         # Print all parameters
         rospy.loginfo("Map Saver initialized with:")
-        rospy.loginfo("  Map name: %s", self.map_name)
-        rospy.loginfo("  Save path: %s", self.save_path)
-        rospy.loginfo("  Threshold occupied: %s", self.threshold_occupied)
-        rospy.loginfo("  Threshold free: %s", self.threshold_free)
+        rospy.loginfo("     Map name: %s", self.map_name)
+        rospy.loginfo("     Save path: %s", self.save_path)
+        rospy.loginfo("     Threshold occupied: %s", self.threshold_occupied)
+        rospy.loginfo("     Threshold free: %s", self.threshold_free)
 
         # Pastikan direktori penyimpanan ada
         if not os.path.exists(self.save_path):
@@ -69,9 +69,9 @@ class MapSaverNode:
         self.map_name = msg.data
         success = self.save_map()
         if success:
-            rospy.loginfo("Map saved successfully set to %s on %s.", self.map_name, self.save_path)
+            rospy.loginfo("MAP SAVER || Map saved successfully set to %s on %s.", self.map_name, self.save_path)
         else:
-            rospy.logerr("Failed to save map %s on %s.", self.map_name, self.save_path)
+            rospy.logerr("MAP SAVER || Failed to save map %s on %s.", self.map_name, self.save_path)
         
     def save_map_service_callback(self, req):
         success = self.save_map()
@@ -88,10 +88,10 @@ class MapSaverNode:
         command = ['rosrun', 'map_server', 'map_saver', '-f', full_map_path]
 
         if self.threshold_occupied is not None:
-            rospy.loginfo("Occupied threshold: %s", self.threshold_occupied)
+            rospy.loginfo("MAP SAVER || Occupied threshold: %s", self.threshold_occupied)
             command.extend(['--occ', str(self.threshold_occupied)])
         if self.threshold_free is not None:
-            rospy.loginfo("Free threshold: %s", self.threshold_free)
+            rospy.loginfo("MAP SAVER || Free threshold: %s", self.threshold_free)
             command.extend(['--free', str(self.threshold_free)])
 
         try:

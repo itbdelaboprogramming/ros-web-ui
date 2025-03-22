@@ -8,15 +8,20 @@ class ChangeModeSerializeNode:
     def __init__(self):
         rospy.init_node('change_mode_serialize_node', anonymous=False)
         
-        self.input_topic = rospy.get_param('~input_topic', '/server/change_mode')
-        self.output_topic = rospy.get_param('~output_topic', '/string/change_mode')
+        self.input_topic = rospy.get_param('~input_topic', '/server/switch_mode')
+        self.output_topic = rospy.get_param('~output_topic', '/string/switch_mode')
+        
+        # Give log detailed info
+        rospy.loginfo("Change Mode Serialization Node is active")
+        rospy.loginfo("     Subscribe to: %s", self.input_topic)
+        rospy.loginfo("     Publish to: %s", self.output_topic)
         
         # Buat publisher dan subscriber
         self.pub = rospy.Publisher(self.output_topic, String, queue_size=10)
         self.sub = rospy.Subscriber(self.input_topic, SwitchModeMsg, self.callback)
         
-        rospy.loginfo("ChangeModeSerializeNode aktif. Subscribe: %s, Publish: %s", 
-                      self.input_topic, self.output_topic)
+        rospy.loginfo("ChangeModeSerializeNode activated.")
+        
     
     def callback(self, msg):
         # Konversi pesan SwitchModeMsg ke dictionary

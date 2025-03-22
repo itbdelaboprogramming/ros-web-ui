@@ -58,7 +58,7 @@ def build_roslaunch_command(mode_msg):
         if is_provided(mode_msg.use_simulator):
             arg_list.append("use_simulator:={}".format(str(mode_msg.use_simulator).lower()))
     else:
-        rospy.logerr("Invalid mode to construct the command: %s", mode_msg.mode)
+        rospy.logerr("SWITCH MODE || Invalid mode to construct the command: %s", mode_msg.mode)
         return None, None
 
     # Susun command list: ["roslaunch", package_name, launch_file_name, arg1, arg2, ...]
@@ -85,14 +85,14 @@ def start_launch(mode_msg):
     if cmd_list is None:
         return None
 
-    rospy.loginfo("Executing command: %s", cmd_display)
+    rospy.loginfo("SWITCH MODE || Executing command: %s", cmd_display)
     
     try:
         process = subprocess.Popen(cmd_list)
-        rospy.loginfo("Launch file for mode '%s' has been started.", mode_msg.mode)
+        rospy.loginfo("SWITCH MODE || Launch file for mode '%s' has been started.", mode_msg.mode)
         return process
     except Exception as e:
-        rospy.logerr("Failed to execute roslaunch: %s", str(e))
+        rospy.logerr("SWITCH MODE || Failed to execute roslaunch: %s", str(e))
         return None
 
 def kill_simulation_processes():
@@ -101,9 +101,9 @@ def kill_simulation_processes():
     """
     try:
         subprocess.call(["killall", "gzserver", "gzclient"])
-        rospy.loginfo("Command 'killall gzserver gzclient' executed.")
+        rospy.loginfo("SWITCH MODE || Command 'killall gzserver gzclient' executed.")
     except Exception as e:
-        rospy.logerr("Failed to execute killall: %s", str(e))
+        rospy.logerr("SWITCH MODE || Failed to execute killall: %s", str(e))
 
 def shutdown_current_launch():
     """
@@ -112,7 +112,7 @@ def shutdown_current_launch():
     """
     global current_launch, current_simulation
     if current_launch is not None:
-        rospy.loginfo("Shutting down the currently running launch file.")
+        rospy.loginfo("SWITCH MODE || Shutting down the currently running launch file.")
         current_launch.terminate()
         try:
             current_launch.wait(timeout=5)
@@ -133,7 +133,7 @@ def process_switch(mode_msg):
     # Mode idle: matikan semua proses dan kembali idle
     if mode_msg.mode.strip().lower() == "idle":
         shutdown_current_launch()
-        rospy.loginfo("Mode 'idle' executed: All processes stopped, system is now idle.")
+        rospy.loginfo("SWITCH MODE || Mode 'idle' executed: All processes stopped, system is now idle.")
         return True
     else:
         shutdown_current_launch()
@@ -149,19 +149,26 @@ def service_callback(req):
 
 def topic_callback(msg):
     if process_switch(msg):
-        rospy.loginfo("Successfully switched to mode '%s' via topic.", msg.mode)
+        rospy.loginfo("SWITCH MODE || Successfully switched to mode '%s' via topic.", msg.mode)
     else:
-        rospy.logerr("Failed to switch to mode '%s' via topic.", msg.mode)
+        rospy.logerr("SWITCH MODE || Failed to switch to mode '%s' via topic.", msg.mode)
 
 def main():
     rospy.init_node('switch_mode_node')
     
-    # Inisiasi service dengan custom service SwitchMode
-    service = rospy.Service('switch_mode', SwitchMode, service_callback)
-    # Inisiasi subscriber ke topik dengan tipe SwitchModeMsg
-    rospy.Subscriber('switch_mode_topic', SwitchModeMsg, topic_callback)
+    # Parameter setting
+    service_name = rospy.get_param('~service_name', 'switch_mode')
+    topic_name = rospy.get_param('~topic_name', 'switch_mode_topic')
+
+    # Initialize service with service_callback
+    service = rospy.Service(service_name, SwitchMode, service_callback)
+    # Initialize subscriber to the topic with type SwitchModeMsg
+    rospy.Subscriber(topic_name, SwitchModeMsg, topic_callback)
     
-    rospy.loginfo("Node switch_mode_node standby")
+    # Logger Detailed Info
+    rospy.loginfo("Switch Mode Node initialized with:")
+    rospy.loginfo("     Service name: %s", service_name)
+    rospy.loginfo("     Topic name: %s", topic_name)
     
     rospy.spin()
     shutdown_current_launch()

@@ -9,17 +9,21 @@ class ChangeModeServiceNode:
     def __init__(self):
         rospy.init_node('change_mode_service_node', anonymous=False)
         
-        self.input_topic = rospy.get_param('~input_topic', '/string/change_mode')
+        self.input_topic = rospy.get_param('~input_topic', '/string/switch_mode')
         self.service_name = rospy.get_param('~service_name', '/switch_mode')
         
         self.sub = rospy.Subscriber(self.input_topic, String, self.callback)
         
-        rospy.loginfo("ChangeModeServiceNode aktif. Subscribe: %s, Service: %s", 
-                      self.input_topic, self.service_name)
+        # Give log detailed info
+        rospy.loginfo("Change Mode Deserialization Node is active")
+        rospy.loginfo("     Subscribe to: %s", self.input_topic)
+        rospy.loginfo("     Service name: %s", self.service_name)
         
         # tmeout service
-        rospy.wait_for_service(self.service_name, timeout=5.0)
+        rospy.wait_for_service(self.service_name, timeout=10.0)
         self.switch_mode_srv = rospy.ServiceProxy(self.service_name, SwitchMode)
+        
+        rospy.loginfo("ChangeModeServiceNode activated.")
     
     def callback(self, msg):
         try:

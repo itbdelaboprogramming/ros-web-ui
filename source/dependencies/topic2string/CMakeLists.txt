@@ -231,6 +231,7 @@ catkin_install_python(PROGRAMS
 
   scripts/change_mode_deserialize.py
   scripts/change_mode_serialize.py
+  scripts/change_mode_string_parse.py
   
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

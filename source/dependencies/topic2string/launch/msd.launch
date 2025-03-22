@@ -1,15 +1,15 @@
 <launch>
 
-    <arg name="namespace" default="msd" />
+    <arg name="namespace" default="topic2string/msd" />
 
-    <node ns="$(arg namespace)" name="action_client" pkg="topic2string" type="action_client.py" output="screen">
+    <node ns="$(arg namespace)" name="msd_action_client" pkg="topic2string" type="action_client.py" output="screen">
     </node>
 
     <node ns="$(arg namespace)" name="robotpose_msd" pkg="topic2string" type="robotpose_to_string.py" output="screen">
     </node>
 
     <node ns="$(arg namespace)" name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" output="screen">
-        <remap from="/robot_pose" to="/client/robotpose"/>
+        <remap from="robot_pose" to="/client/robotpose"/>
     </node>
 
     <node ns="$(arg namespace)" name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
@@ -28,9 +28,14 @@
     <node ns="$(arg namespace)" name="mapping_instr" pkg="topic2string" type="mapping_instr.py" output="screen">
     </node>
 
-    <node ns="$(arg namespace)" name="mode_deserialize" pkg="topic2string" type="change_mode_deserialize.py" output="screen">
-        <param name="input_topic" value="/string/change_mode" />
-        <param name="service_name" value="change_mode" />
+    <node ns="$(arg namespace)" name="mode_deserialize" pkg="topic2string" type="change_mode_deserialize.py" output="log">
+        <param name="input_topic" value="/string/switch_mode" />
+        <param name="service_name" value="/switch_mode" />
     </node>
+
+    <!-- Launch for switch mode launch -->
+    <include file="$(find msd700_webui_control)/launch/switch_mode.launch">
+    </include>
+
 
 </launch>

@@ -12,6 +12,9 @@
     <!-- Launch particle align validator -->
     <include file="$(find msd700_webui_control)/launch/particle_align_validator.launch" />
 
+    <!-- Launch for switch mode -->
+    <node pkg="msd700_webui_control" type="switch_mode.py" name="switch_mode" output="screen" />
+
     <!-- Conditionally launch aws_mqtt pkg launchfile if use_sim is false -->
     <group if="$(arg use_hive)">
         <include file="$(find aws_mqtt)/launch/hive_msd.launch" />

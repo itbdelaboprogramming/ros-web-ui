@@ -1,8 +1,15 @@
 <launch>
-    <arg name="namespace" default="msd" />
+
+    <!-- Param for name of topic and service -->
+    <arg name="node_name" default="switch_mode" />
+    <arg name="topic_name" default="switch_mode_topic" />
+    <arg name="service_name" default="switch_mode" />
 
     <!-- Launch the Particle Align Validator node -->
-    <node ns="$(arg namespace)" pkg="msd700_webui_control" type="switch_mode.py" name="switch_mode" output="screen" />
+    <node pkg="msd700_webui_control" type="switch_mode.py" name="$(arg node_name)" output="screen">
+        <param name="topic_name" value="$(arg topic_name)" />
+        <param name="service_name" value="$(arg service_name)" />
+    </node>
 
 
 </launch>

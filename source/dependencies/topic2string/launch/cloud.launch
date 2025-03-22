@@ -1,6 +1,6 @@
 <launch>
 
-    <arg name="namespace" default="aws" />
+    <arg name="namespace" default="topic2string/aws" />
 
     <node ns="$(arg namespace)" name="action_server" pkg="topic2string" type="action_server.py" output="screen">
     </node>
@@ -21,8 +21,11 @@
     </node>
 
     <node ns="$(arg namespace)" name="mode_serializer" pkg="topic2string" type="change_mode_serialize.py" output="screen">
-        <param name="input_topic" value="/server/change_mode" />
-        <param name="output_topic" value="/string/change_mode" />
+        <param name="input_topic" value="/server/switch_mode" />
+        <param name="output_topic" value="/string/switch_mode" />
+    </node>
+
+    <node ns="$(arg namespace)" name="mode_string_parser" pkg="topic2string" type="change_mode_string_parse.py" output="screen">
     </node>
     
 </launch>

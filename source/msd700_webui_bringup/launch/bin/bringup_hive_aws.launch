@@ -6,11 +6,11 @@
     <arg name="use_hive" default="true" />
 
     <!-- Launch for topic2string pkg launchfile -->
-    <include file="$(find topic2string)/launch/aws.launch" />
+    <include file="$(find topic2string)/launch/cloud.launch" />
 
     <!-- Launch for aws_mqtt pkg launchfile only if use_aws is true -->
     <group if="$(arg use_hive)">
-        <include file="$(find aws_mqtt)/launch/hive_aws.launch" />
+        <include file="$(find aws_mqtt)/launch/hive_cloud.launch" />
     </group>
 
     <!-- NODE MAP SERVER -->

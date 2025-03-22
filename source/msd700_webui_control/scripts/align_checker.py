@@ -44,36 +44,36 @@ class RobotAlignmentController:
         self.timer = rospy.Timer(rospy.Duration(1.0 / self.check_frequency), self.check_alignment)
 
         rospy.loginfo("Robot Alignment Controller initialized with:")
-        rospy.loginfo("  Check frequency: %f Hz", self.check_frequency)
-        rospy.loginfo("  Timeout: %f seconds", self.timeout)
-        rospy.loginfo("  Rotation speed: %f", self.rotation_speed)
-        rospy.loginfo("  Alignment topic: %s", self.alignment_topic)
-        rospy.loginfo("  Command velocity topic: %s", self.cmd_vel_topic)
-        rospy.loginfo("  Service start: %s", self.service_start)
-        rospy.loginfo("  Service reset: %s", self.service_reset)
-        rospy.loginfo("  Service alignment status: %s", self.service_allign_status)
+        rospy.loginfo("     Check frequency: %f Hz", self.check_frequency)
+        rospy.loginfo("     Timeout: %f seconds", self.timeout)
+        rospy.loginfo("     Rotation speed: %f", self.rotation_speed)
+        rospy.loginfo("     Alignment topic: %s", self.alignment_topic)
+        rospy.loginfo("     Command velocity topic: %s", self.cmd_vel_topic)
+        rospy.loginfo("     Service start: %s", self.service_start)
+        rospy.loginfo("     Service reset: %s", self.service_reset)
+        rospy.loginfo("     Service alignment status: %s", self.service_allign_status)
         
 
     def alignment_status_callback(self, msg):
         self.aligned = msg.data
-        rospy.loginfo("Alignment status updated: %s", self.aligned)
+        rospy.loginfo("ALLIGN CHECK || Alignment status updated: %s", self.aligned)
 
     def check_alignment(self, event):
         if not self.is_active:
-            rospy.loginfo_throttle(5, "Waiting for start command.")
+            # rospy.loginfo_throttle(5, "ALLIGN CHECK || Waiting for start command.")
             return
 
         if self.aligned:
-            rospy.loginfo("Robot already aligned. No action required.")
+            rospy.loginfo("ALLIGN CHECK || Robot already aligned. No action required.")
             self.stop_rotation()
             return
 
         if (rospy.Time.now() - self.last_attempt_time).to_sec() >= self.timeout:
-            rospy.logerr("Alignment timeout reached. Stopping rotation and entering standby.")
+            rospy.logerr("ALLIGN CHECK || Alignment timeout reached. Stopping rotation and entering standby.")
             self.stop_rotation()
             return
 
-        rospy.loginfo("Robot not aligned. Sending rotation command.")
+        rospy.loginfo("ALLIGN CHECK || Robot not aligned. Sending rotation command.")
         self.send_rotation_command()
 
     def send_rotation_command(self):
@@ -81,24 +81,24 @@ class RobotAlignmentController:
         twist.angular.z = self.rotation_speed
         self.cmd_vel_pub.publish(twist)
         self.rotation_active = True
-        rospy.loginfo("Published rotation command with speed: %f", self.rotation_speed)
+        rospy.loginfo("ALLIGN CHECK || Published rotation command with speed: %f", self.rotation_speed)
 
     def stop_rotation(self):
         if self.rotation_active:
             twist = Twist()  # Stop rotation
             self.cmd_vel_pub.publish(twist)
             self.rotation_active = False
-            rospy.loginfo("Stopped rotation commands.")
+            rospy.loginfo("ALLIGN CHECK || Stopped rotation commands.")
 
     def reset_alignment_service(self, req):
-        rospy.loginfo("Resetting alignment attempts. Entering idle mode.")
+        rospy.loginfo("ALLIGN CHECK || Resetting alignment attempts. Entering idle mode.")
         self.last_attempt_time = rospy.Time.now()
         self.rotation_active = False
         self.is_active = False
         return TriggerResponse(success=True, message="Alignment reset initiated.")
 
     def start_alignment_service(self, req):
-        rospy.loginfo("Starting alignment process.")
+        rospy.loginfo("ALLIGN CHECK || Starting alignment process.")
         self.is_active = True
         self.last_attempt_time = rospy.Time.now()
         return TriggerResponse(success=True, message="Alignment process started.")
@@ -108,4 +108,4 @@ if __name__ == '__main__':
         RobotAlignmentController()
         rospy.spin()
     except rospy.ROSInterruptException:
-        rospy.loginfo("Robot Alignment Controller node terminated.")
+        rospy.loginfo("ALLIGN CHECK || Robot Alignment Controller node terminated.")
