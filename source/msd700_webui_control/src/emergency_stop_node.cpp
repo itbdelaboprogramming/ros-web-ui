@@ -4,15 +4,11 @@
 
 class EmergencyStopNode {
 private:
-    ros::NodeHandle nh_;
-    ros::Subscriber start_sub_;
+    ros::NodeHandle nh_{"~"};
     ros::Subscriber pause_sub_;
-    ros::Subscriber stop_sub_;
     ros::Publisher cmd_pub_;
 
-    bool start_flag_ = false;
     bool pause_flag_ = false;
-    bool stop_flag_ = false;
     double publish_frequency_;
 
     bool is_status_changed_ = true;
@@ -20,10 +16,10 @@ private:
     geometry_msgs::Twist zero_twist_;
 
 public:
-    EmergencyStopNode() {
-        // Memuat parameter dari parameter server
-        std::string start_topic, pause_topic, stop_topic, emergency_topic;
-
+    EmergencyStopNode() : nh_{"~"} { 
+        std::string pause_topic, emergency_topic;
+        
+        // Load parameters with proper namespace
         nh_.param("pause_topic", pause_topic, std::string("/mapping/Pause"));
         nh_.param("emergency_topic", emergency_topic, std::string("/cmd_emergency"));
         nh_.param("publish_frequency", publish_frequency_, 10.0);
@@ -39,12 +35,16 @@ public:
         zero_twist_.angular.x = 0.0;
         zero_twist_.angular.y = 0.0;
         zero_twist_.angular.z = 0.0;
+
+        // Print Roscpp info node initialized
+        ROS_INFO("Emergency Stop Node Initialized with :");
+        ROS_INFO("      Pause Topic : %s", pause_topic.c_str());
+        ROS_INFO("      Emergency Topic : %s", emergency_topic.c_str());
+        ROS_INFO("      Publish Frequency : %.2f", publish_frequency_);
     }
 
     void pauseCallback(const std_msgs::Bool::ConstPtr& msg) {
         pause_flag_ = msg->data;
-        start_flag_ = false;
-        stop_flag_ = false;
 
         is_status_changed_ = true;
     }
