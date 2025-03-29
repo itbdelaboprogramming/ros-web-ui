@@ -8,23 +8,21 @@
     <!-- Launch for topic2string pkg launchfile -->
     <include file="$(find topic2string)/launch/cloud.launch" />
 
+    <!-- Launch the backend API -->
+    <include file="$(find ros_dashboard_backend)/launch/ros_dashboard_backend.launch">
+        <arg name="use_compression" value="true"/>
+        <arg name="rosbridge_websocket" value="false"/>
+    </include>
+
     <!-- Launch for aws_mqtt pkg based on the use_cloud argument -->
     <group if="$(arg use_cloud)">
-        <group if="$(and $(arg use_aws) $(not $(arg use_hive)))">
+        <group if="$(arg use_aws)">
             <include file="$(find aws_mqtt)/launch/cloud_aws.launch" />
         </group>
 
-        <group if="$(and $(arg use_hive) $(not $(arg use_aws)))">
+        <group if="$(arg use_hive)">
             <include file="$(find aws_mqtt)/launch/hive_cloud.launch" />
         </group>
     </group>
     
 </launch>
-
-    <!-- NODE MAP SERVER -->
-    <!-- <node name="mapaws_server" pkg="map_server" type="map_server" args="$(find msd700_webui_bringup)/maps/$(arg map_name)" output="screen"> -->
-        <!-- Change topic into /server/map -->
-        <!-- <remap from="map" to="/server/map"/> -->
-        <!-- Change service topic into /server/static_map -->
-        <!-- <remap from="static_map" to="/server/static_map"/> -->
-    <!-- </node> -->

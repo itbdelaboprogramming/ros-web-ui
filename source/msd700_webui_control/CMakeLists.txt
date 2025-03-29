@@ -30,6 +30,7 @@ catkin_install_python(PROGRAMS
   scripts/align_checker.py
   scripts/map_saver.py
   scripts/switch_mode.py
+  scripts/system_command.py
   
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

@@ -1,0 +1,9 @@
+<launch>
+    <arg name="node_name" default="system_command" />
+    <arg name="ns" default="server" />
+
+    <!-- Launch the Particle Align Validator node -->
+    <node ns="$(arg ns)" pkg="msd700_webui_control" type="system_command.py" name="$(arg node_name)" output="screen">
+    </node>
+
+</launch>

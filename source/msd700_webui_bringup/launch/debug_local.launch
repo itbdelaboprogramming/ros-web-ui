@@ -1,4 +1,6 @@
 <launch>
+    <!-- Param -->
+    <arg name="use_dual_machine" value="false"/>
 
     <!-- launch bringup_cloud and bringup_msd with use_cloud false -->
     <include file="$(find msd700_webui_bringup)/launch/bringup_cloud.launch">
@@ -7,6 +9,7 @@
 
     <include file="$(find msd700_webui_bringup)/launch/bringup_msd.launch">
         <arg name="use_cloud" value="false"/>
+        <arg name="use_map_saver" value="$(arg use_dual_machine)"/>
     </include>
 
 </launch>

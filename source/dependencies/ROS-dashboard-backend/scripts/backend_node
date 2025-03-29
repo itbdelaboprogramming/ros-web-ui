@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const app = express();
-var mysql = require('mysql');
+var mysql = require('mysql2');
 const rosnodejs = require('rosnodejs');
 const {spawn} = require('child_process');
 var psTree = require('ps-tree');
@@ -32,12 +32,13 @@ const timezone = process.env.TIMEZONE;
 const jwt_secret_key = process.env.JWT_SECRET_KEY;
 const PORT = process.env.PORT || 5000;
 const SSL = process.env.SSL || `${__dirname}/certs/ca.pem`;
+const PORT_SQL = process.env.PORT_SQL || 15844;
 
 console.log({
     host: mysql_host,
     user: mysql_user,
     database: mysql_database,
-    port: 15844
+    port: PORT_SQL
   });  
 
 const sslOptions = {
@@ -48,10 +49,11 @@ var pool = mysql.createPool({
     host: mysql_host,
     user: mysql_user,
     password: mysql_password,
-    database : mysql_database,
-    port: 15844,
+    database: mysql_database,
+    port: PORT_SQL,
     ssl: sslOptions
 });
+
 
 // Test MySQL connection
 pool.getConnection((err, connection) => {
@@ -109,10 +111,46 @@ const defaultData = {
     map_name: "map"
     }
 };
-
 // Merge the default data with the overrides provided by the user.
 return deepMerge(JSON.parse(JSON.stringify(defaultData)), overrides);
 }
+
+function createNavigationData(overrides = {}) {
+    // Default JSON structure
+    const defaultData = {
+        header: "navigation",
+        mode: {
+            mode: "single",
+        },
+        instructions: {
+            pause: false,
+            stop: false,
+        },
+        parameters: {
+            open_rviz: true,
+            use_simulator: true,
+            map_file: "/home/ubuntu/ros_maps/map.yaml",
+        },
+    };
+
+    // Merge the default data with the overrides provided by the user
+    return deepMerge(JSON.parse(JSON.stringify(defaultData)), overrides);
+}
+
+function createMSDSystemData(overrides = {}) {
+    // Default JSON structure
+    const defaultData = {
+        header: "system_mode", // Default header
+        command: "action_type", // Default command
+        metadata: {
+            timestamp: new Date().toISOString(), // Current timestamp in ISO8601 format
+        },
+    };
+
+    // Merge the default data with the overrides provided by the user
+    return deepMerge(JSON.parse(JSON.stringify(defaultData)), overrides);
+}
+
 
 // Middleware JWT (JSON Web Token)
 const verifyToken = (req, res, next) => {
@@ -309,7 +347,7 @@ app.post('/api/mapping', verifyToken, (req, res) => {
     const { start, pause, stop, unit_name } = req.body;
     const user_id = req.user_id;
     const username = req.username;
-    const mqtt_topic = `${username}/${unit_name}/mapping`;
+    const mqtt_topic = `/${username}/${unit_name}/system_command`;
 
     console.log(`[INFO] Received mapping request:`, {
         user_id,
@@ -331,18 +369,21 @@ app.post('/api/mapping', verifyToken, (req, res) => {
 
     if (start) {
         console.log(`[INFO] Publishing "start" command to MQTT topic: ${mqtt_topic}`);
-        const customMapping = createMappingData({
-            mapping_instructions: { start: true }
+        const robotCommand = createMSDSystemData({
+            header: "mapping",
+            command: "start"
         });
-        mqtt_client.publish(mqtt_topic, JSON.stringify(customMapping));
+        mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
+
         return sendResponse(200, { success: true, msg: "Mapping request success" });
 
     } else if (pause) {
         console.log(`[INFO] Publishing "pause" command to MQTT topic: ${mqtt_topic}`);
-        const customMapping = createMappingData({
-            mapping_instructions: { pause: true }
+        const robotCommand = createMSDSystemData({
+            header: "mapping",
+            command: "pause"
         });
-        mqtt_client.publish(mqtt_topic, JSON.stringify(customMapping));
+        mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
         return sendResponse(200, { success: true, msg: "Mapping request success" });
 
     } else if (stop) {
@@ -368,6 +409,18 @@ app.post('/api/mapping', verifyToken, (req, res) => {
 
         });
         mqtt_client.publish(mqtt_topic, JSON.stringify(customMapping));
+
+        const robotCommand = createMSDSystemData({
+            header: "mapping",
+            command: "stop",
+            config: {
+                resource: {
+                    map_name: map_name,
+                    default_save_path: map_path,
+                },
+            },
+        });
+        mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
         
 
         console.log(`[INFO] Executing map saver command: ${commandToExecute}`);
@@ -438,12 +491,60 @@ app.post('/api/lidar', verifyToken, (req, res) => {
     }
 });
 
+app.post('/api/navigation', verifyToken, (req, res) => {
+    const { action, targets, unit_name } = req.body;
+    const user_id = req.user_id;
+    const username = req.username;
+  
+    const commandPayload = createSystemCommand({
+      header: "navigation",
+      command: action,
+      config: {
+        operation_mode: targets.length > 1 ? "multi" : "single",
+      },
+      data: {
+        targets: targets.map(t => ({
+          x: t.x,
+          y: t.y,
+          theta: t.theta || 0.0,
+        }))
+      }
+    });
+    mqtt_client.publish(`${username}/${unit_name}/system_command`, JSON.stringify(commandPayload));
+    res.status(200).json({ success: true, msg: "Navigation command processed" });
+  });
+
 // Set Own Map API
 app.post('/api/set_own_map', verifyToken, (req, res) => {
-    const {enable, map_name} = req.body;
+    const {enable, map_name, unit_name} = req.body;
+    const user_id = req.user_id;
+    const username = req.username;
+    mqtt_topic = `/${username}/${unit_name}/system_command`;
+
     if (enable) {
         const yaml_file = map_name.replace('.pgm', '.yaml');
-        const commandToExecute = `rosrun map_server map_server ${map_path}/${yaml_file}`;
+
+        // Receive the map name and yaml file name from the request body
+        console.log(`Received enable own map: ${enable}`);
+        console.log(`Received map name: ${map_name}`);
+        console.log(`Received yaml file name: ${yaml_file}`);
+
+        const robotCommand = createMSDSystemData({
+            header: "navigation",
+            command: "init",
+            config: {
+                resource: {
+                    operation_mode: "single",
+                    map_file: `${map_path}/${yaml_file}`,
+                    map_name: map_name,
+                }
+            }
+        });
+        mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
+
+        const commandToExecute = `rosrun map_server map_server ${map_path}/${yaml_file} map:=/server/map`;
+
+        console.log(`[INFO] Command to execute: ${commandToExecute}`);
         map_server_child = spawn(commandToExecute, {shell: true});
 
         map_server_child.stdout.on('data', (data) => {
@@ -458,6 +559,7 @@ app.post('/api/set_own_map', verifyToken, (req, res) => {
             console.log(`child process exited with code ${code}`);
         });
         res.status(200).json({success: true, msg: "Enable own map success"});
+
     }
     else {
         if (map_server_child === undefined) {

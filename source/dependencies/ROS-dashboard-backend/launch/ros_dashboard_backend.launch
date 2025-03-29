@@ -1,5 +1,11 @@
 <launch>
     <arg name="use_compression" default="true" />
-    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" pass_all_args="true" />
+    <arg name="rosbridge_websocket" default="false" />
+    
+    <!-- The Rosbridge Launch  -->
+    <group if="$(arg rosbridge_websocket)">
+        <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" pass_all_args="true" />
+    </group>
+
     <node pkg="ros_dashboard_backend" type="backend_node" name="backend_node" output="screen" respawn="true"> </node>
 </launch>

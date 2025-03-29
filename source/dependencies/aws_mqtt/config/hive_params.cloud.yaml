@@ -3,7 +3,7 @@ broker:
   port: 1883
 
 client:
-  id: user_client
+  id: user_server
 
 bridge:
   # types results in the error message Connection to broker lost, will try to reconnect...
