@@ -64,9 +64,13 @@ def file_exists_in_database(file_name, table_name):
     try:
         connection = mysql.connector.connect(
             host=MYSQL_HOST,
+            port=MYSQL_PORT,  # e.g., 3306 or your custom port
             database=MYSQL_DATABASE,
             user=MYSQL_USER,
-            password=MYSQL_PASS
+            password=MYSQL_PASS,
+            ssl_ca=MYSQL_SSL_CA,         # path to your CA certificate file
+            ssl_verify_cert=True,        # ensures the server certificate is verified
+            connection_timeout=10        # optional: set a timeout to avoid hanging
         )
         cursor = connection.cursor()
 
@@ -109,9 +113,13 @@ def insert_yaml_data_into_mysql(yaml_data, file_name):
         try:
             connection = mysql.connector.connect(
                 host=MYSQL_HOST,
+                port=MYSQL_PORT,  # e.g., 3306 or your custom port
                 database=MYSQL_DATABASE,
                 user=MYSQL_USER,
-                password=MYSQL_PASS
+                password=MYSQL_PASS,
+                ssl_ca=MYSQL_SSL_CA,         # path to your CA certificate file
+                ssl_verify_cert=True,        # ensures the server certificate is verified
+                connection_timeout=10        # optional: set a timeout to avoid hanging
             )
             cursor = connection.cursor()
 
@@ -130,7 +138,7 @@ def insert_yaml_data_into_mysql(yaml_data, file_name):
 
 def insert_single_yaml_record(cursor, file_name, file_size, created_time, modified_time, author, file_type, yaml_data):
     parsed_list = file_name.split('_')
-    user_id = 0
+    user_id = USER_ID
     if parsed_list:
         user_id = parsed_list[0]
     sql_query = """
@@ -155,9 +163,13 @@ def insert_pgm_data_into_mysql(pgm_data, file_name):
         try:
             connection = mysql.connector.connect(
                 host=MYSQL_HOST,
+                port=MYSQL_PORT,  # e.g., 3306 or your custom port
                 database=MYSQL_DATABASE,
                 user=MYSQL_USER,
-                password=MYSQL_PASS
+                password=MYSQL_PASS,
+                ssl_ca=MYSQL_SSL_CA,         # path to your CA certificate file
+                ssl_verify_cert=True,        # ensures the server certificate is verified
+                connection_timeout=10        # optional: set a timeout to avoid hanging
             )
 
             cursor = connection.cursor()
@@ -175,7 +187,7 @@ def insert_pgm_data_into_mysql(pgm_data, file_name):
             next_id = get_next_id(cursor, "pgm_data")
 
             parsed_list = file_name.split('_')
-            user_id = 0
+            user_id = USER_ID
             if parsed_list:
                 user_id = parsed_list[0]
 
@@ -230,9 +242,13 @@ def update_file_in_database(old_file_name, new_file_name, table_name):
     try:
         connection = mysql.connector.connect(
             host=MYSQL_HOST,
+            port=MYSQL_PORT,  # e.g., 3306 or your custom port
             database=MYSQL_DATABASE,
             user=MYSQL_USER,
-            password=MYSQL_PASS
+            password=MYSQL_PASS,
+            ssl_ca=MYSQL_SSL_CA,         # path to your CA certificate file
+            ssl_verify_cert=True,        # ensures the server certificate is verified
+            connection_timeout=10        # optional: set a timeout to avoid hanging
         )
         cursor = connection.cursor()
 
@@ -273,9 +289,13 @@ def delete_file_from_database(file_name, table_name):
     try:
         connection = mysql.connector.connect(
             host=MYSQL_HOST,
+            port=MYSQL_PORT,  # e.g., 3306 or your custom port
             database=MYSQL_DATABASE,
             user=MYSQL_USER,
-            password=MYSQL_PASS
+            password=MYSQL_PASS,
+            ssl_ca=MYSQL_SSL_CA,         # path to your CA certificate file
+            ssl_verify_cert=True,        # ensures the server certificate is verified
+            connection_timeout=10        # optional: set a timeout to avoid hanging
         )
         cursor = connection.cursor()
 

@@ -19,6 +19,16 @@ class Watcher:
     def __init__(self):
         self.observer = Observer()
         self.directory = DIRECTORY_TO_WATCH
+        
+        # Logging the system
+        print("Monitoring directory:", self.directory, flush=True)
+        print(f"Database Host: {MYSQL_HOST}")
+        print(f"Database Name: {MYSQL_DATABASE}")
+        print(f"Database User: {MYSQL_USER}")
+        print(f"Local Timezone: {LOCAL_TIMEZONE}")
+        print(f"Convert Timezone: {CONVERT_TIMEZONE}")
+        print("Starting to monitor files...")
+        print("=========================================")
 
     def run(self):
         # Process existing files before starting the observer
@@ -41,9 +51,13 @@ def file_exists_in_database(file_name, table_name):
     try:
         connection = mysql.connector.connect(
             host=MYSQL_HOST,
+            port=MYSQL_PORT,  # e.g., 3306 or your custom port
             database=MYSQL_DATABASE,
             user=MYSQL_USER,
-            password=MYSQL_PASS
+            password=MYSQL_PASS,
+            ssl_ca=MYSQL_SSL_CA,         # path to your CA certificate file
+            ssl_verify_cert=True,        # ensures the server certificate is verified
+            connection_timeout=10        # optional: set a timeout to avoid hanging
         )
         cursor = connection.cursor()
 
@@ -68,6 +82,9 @@ def file_exists_in_database(file_name, table_name):
 
 # YANG UDAH ADA
 def process_existing_files(folder_path):
+    # Logging the system
+    print("Processing existing files in the directory...")
+    print("=========================================")
     for filename in os.listdir(folder_path):
         file_path = os.path.join(folder_path, filename)
 
@@ -78,7 +95,7 @@ def process_existing_files(folder_path):
         elif filename.endswith(".pgm"):
             pgm_data = read_pgm_file(file_path)
             insert_pgm_data_into_mysql(pgm_data, filename)
-
+    print("=========================================")
 
 class Handler(FileSystemEventHandler):
 
