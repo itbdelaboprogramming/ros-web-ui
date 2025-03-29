@@ -1,0 +1,604 @@
+#!/usr/bin/env node
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const app = express();
+var mysql = require('mysql');
+const rosnodejs = require('rosnodejs');
+const {spawn} = require('child_process');
+var psTree = require('ps-tree');
+const fs = require('fs');
+const yaml = require('js-yaml');
+const mqtt = require('mqtt');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const validator = require('validator'); 
+
+rosnodejs.initNode('/backend_node');
+const nh = rosnodejs.nh;
+
+let map_saver_child = undefined;
+let map_server_child = undefined;
+
+// Config
+require('dotenv').config({path: `${__dirname}/.env`})
+const mysql_host = process.env.MYSQL_HOST;
+const mysql_user = process.env.MYSQL_USER;
+const mysql_password = process.env.MYSQL_PASSWORD;
+const mysql_database = process.env.MYSQL_DATABASE;
+const map_path = process.env.MAP_PATH;
+const mqtt_broker_ip = process.env.MQTT_BROKER_IP;
+const timezone = process.env.TIMEZONE;
+const jwt_secret_key = process.env.JWT_SECRET_KEY;
+const PORT = process.env.PORT || 5000;
+const SSL = process.env.SSL || `${__dirname}/certs/ca.pem`;
+
+console.log({
+    host: mysql_host,
+    user: mysql_user,
+    database: mysql_database,
+    port: 15844
+  });  
+
+const sslOptions = {
+    ca: fs.readFileSync(SSL)
+  };
+
+var pool = mysql.createPool({
+    host: mysql_host,
+    user: mysql_user,
+    password: mysql_password,
+    database : mysql_database,
+    port: 15844,
+    ssl: sslOptions
+});
+
+// Test MySQL connection
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error("MySQL connection failed:", err.message);
+    } else {
+        console.log("MySQL connected successfully!");
+        connection.release(); // Release the connection back to the pool
+    }
+});
+
+const mqtt_client = mqtt.connect(`mqtt://${mqtt_broker_ip}`);
+mqtt_client.on('connect', () => {
+    rosnodejs.log.info(`Connected to MQTT Broker at ${mqtt_broker_ip}`);
+});
+  
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(cors({
+    origin: '*'
+}));
+
+// A helper function to perform a deep merge of two objects.
+function deepMerge(target, source) {
+    for (const key in source) {
+      if (
+        source[key] &&
+        typeof source[key] === 'object' &&
+        !Array.isArray(source[key])
+      ) {
+        if (!target[key] || typeof target[key] !== 'object') {
+          target[key] = {};
+        }
+        deepMerge(target[key], source[key]);
+      } else {
+        target[key] = source[key];
+      }
+    }
+    return target;
+  }
+  
+// Function to create the JSON object using default values and any overrides provided.
+function createMappingData(overrides = {}) {
+// Default JSON structure
+const defaultData = {
+    header: "mapping",
+    mapping_instructions: {
+    start: false,
+    pause: false,
+    stop: false
+    },
+    mapping_info: {
+    save_map: false,
+    path: "/home/ubuntu/ros_maps",
+    map_name: "map"
+    }
+};
+
+// Merge the default data with the overrides provided by the user.
+return deepMerge(JSON.parse(JSON.stringify(defaultData)), overrides);
+}
+
+// Middleware JWT (JSON Web Token)
+const verifyToken = (req, res, next) => {
+    const bearerToken = req.headers['authorization'];
+    const token = bearerToken ? bearerToken.split(' ')[1] : undefined;
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, jwt_secret_key);
+            req.user_id = decoded.user_id;
+            req.username = decoded.username;
+            req.full_name = decoded.full_name;
+            next();
+        }
+        catch (err) {
+            res.status(401).json({success: false, msg: "Unauthorized"});
+        }
+    }
+    else {
+        res.status(401).json({success: false, msg: "Unauthorized"});
+    }
+}
+
+// Home API
+app.get('/', verifyToken, (req, res) => {
+    res.status(200).json({ success: true, data: `Welcome to ROS Dashboard Backend API, username: ${req.username}, full name: ${req.full_name}`});
+});
+
+// User Register API
+app.post('/user/register', async (req, res) => {
+    try {
+        const { username, email, full_name, password } = req.body;
+
+        // Validate email
+        if (!validator.isEmail(email)) {
+            return res.status(400).json({ error: 'Invalid email address' });
+        }
+
+        // Hash the password
+        const hashed_password = await bcrypt.hash(password, 10);
+
+        // Check if the username already exists
+        const check_username_query = 'SELECT * FROM user WHERE username = ?';
+        pool.query(check_username_query, [username], (err, rows) => {
+            if (err) {
+                console.error('Error checking username:', err);
+                return res.status(500).json({ success: false, msg: 'Internal Server Error' });
+            }
+
+            if (rows.length === 0) {
+                // Insert the new user
+                const query = 'INSERT INTO user (username, email, full_name, password) VALUES (?, ?, ?, ?)';
+                pool.query(query, [username, email, full_name, hashed_password], (err, rows) => {
+                    if (err) {
+                        console.error('Error inserting user:', err);
+                        return res.status(500).json({ success: false, msg: 'Internal Server Error' });
+                    }
+
+                    res.status(201).json({ success: true, msg: 'Register user success' });
+                });
+            } else {
+                res.status(409).json({ success: false, msg: 'Username already exists' });
+            }
+        });
+    } catch (err) {
+        console.error('Unexpected error:', err);
+        res.status(500).json({ success: false, msg: 'Internal Server Error' });
+    }
+});
+
+// User Login API
+app.post('/user/login', async (req, res) => {
+    const {username, password} = req.body;
+    const query = 'SELECT * FROM user WHERE username = ?';
+    pool.query(query, [username], async (err, rows, fields) => {
+        if (!err) {
+            if (rows.length !== 0) {
+                const user_id = rows[0].id;
+                const user_password = rows[0].password;
+                const full_name = rows[0].full_name;
+                const match = await bcrypt.compare(password, user_password);
+                if (match) {
+                    const token = jwt.sign({user_id: user_id, username: username, full_name: full_name}, jwt_secret_key, {expiresIn: '3h'});
+                    res.status(200).json({success: true, msg: "Login user success", username: username, full_name: full_name, token: token});
+                }
+                else {
+                    res.status(401).json({success: false, msg: "Wrong username or unit id or password"});
+                }
+            } 
+            else {
+                res.status(401).json({success: false, msg: "Wrong username or unit id or password"});
+            }
+        }
+        else {
+            res.status(500).json({ success: false, msg: "Internal Server Error"});
+        }
+    });
+})
+
+// Check Username API
+app.post('/user/check-username', async (req, res) => {
+    const {username} = req.body;
+    const query = 'SELECT * FROM user WHERE username = ?';
+    pool.query(query, [username], (err, rows, fields) => {
+        if (!err && rows.length === 0) {
+            res.status(200).json({success: true, msg: "Username available"});
+        }
+        else {
+            res.status(409).json({success: false, msg: "Username already exist"});
+        }
+    });
+});
+
+// Check Email API
+app.post('/user/check-email', async (req, res) => {
+    const {email} = req.body;
+    if (!validator.isEmail(email)) {
+        return res.status(400).json({ error: 'Invalid email address' });
+    }
+    const query = 'SELECT * FROM user WHERE email = ?';
+    pool.query(query, [email], (err, rows, fields) => {
+        if (!err && rows.length === 0) {
+            res.status(200).json({success: true, msg: "Email available"});
+        }
+        else {
+            res.status(409).json({success: false, msg: "Email already exist"});
+        }
+    });
+});
+
+// Unit Register API
+app.post('/unit/register', verifyToken, async (req, res) => {
+    const {unit_name} = req.body;
+    const user_id = req.user_id;
+    if (unit_name === '') {
+        res.status(400).json({ success: false, msg: "Unit name cannot be empty"});
+    }
+    else {
+        const check_unit_query = 'SELECT * FROM unit WHERE unit_name = ? AND user_id = ?';
+        pool.query(check_unit_query, [unit_name, user_id], (err, rows, fields) => {
+            if (!err) {
+                if (rows.length === 0) {
+                    const query = 'INSERT INTO unit (unit_name, user_id) VALUES (?, ?)';
+                    pool.query(query, [unit_name, user_id], (err, rows, fields) => {
+                        if (!err) {
+                            res.status(201).json({ success: true, msg: "Register unit success"});
+                        }
+                        else {
+                            res.status(500).json({ success: false, msg: "Internal Server Error"});
+                        }
+                    });
+                }
+                else {
+                    res.status(409).json({ success: false, msg: "Unit already exist"});
+                }
+            }
+            else {
+                res.status(500).json({ success: false, msg: "Internal Server Error"});
+            }
+        })
+    }
+})
+
+// Get All Unit API
+app.get('/unit/all', verifyToken, (req, res) => {
+    const user_id = req.user_id;
+
+    // Log the incoming request
+    console.log(`[INFO] Received request to fetch all units for user_id: ${user_id}`);
+
+    const query = 'SELECT * FROM unit WHERE user_id = ?';
+
+    // Log the query being executed
+    console.log(`[INFO] Executing query: ${query} with user_id: ${user_id}`);
+
+    pool.query(query, [user_id], (err, rows, fields) => {
+        if (!err) {
+            // Log the query result
+            console.log(`[INFO] Query successful. Retrieved units:`, rows);
+
+            res.status(200).json({ success: true, data: rows });
+        } else {
+            // Log the error
+            console.error(`[ERROR] Failed to fetch units for user_id: ${user_id}. Error:`, err);
+
+            res.status(500).json({ success: false, msg: "Internal Server Error" });
+        }
+    });
+});
+
+
+
+// Mapping API
+app.post('/api/mapping', verifyToken, (req, res) => {
+    const { start, pause, stop, unit_name } = req.body;
+    const user_id = req.user_id;
+    const username = req.username;
+    const mqtt_topic = `${username}/${unit_name}/mapping`;
+
+    console.log(`[INFO] Received mapping request:`, {
+        user_id,
+        username,
+        unit_name,
+        start,
+        pause,
+        stop,
+    });
+
+    // Flag to ensure only one response is sent.
+    let responseSent = false;
+    const sendResponse = (status, payload) => {
+        if (!responseSent && !res.headersSent) {
+            responseSent = true;
+            res.status(status).json(payload);
+        }
+    };
+
+    if (start) {
+        console.log(`[INFO] Publishing "start" command to MQTT topic: ${mqtt_topic}`);
+        const customMapping = createMappingData({
+            mapping_instructions: { start: true }
+        });
+        mqtt_client.publish(mqtt_topic, JSON.stringify(customMapping));
+        return sendResponse(200, { success: true, msg: "Mapping request success" });
+
+    } else if (pause) {
+        console.log(`[INFO] Publishing "pause" command to MQTT topic: ${mqtt_topic}`);
+        const customMapping = createMappingData({
+            mapping_instructions: { pause: true }
+        });
+        mqtt_client.publish(mqtt_topic, JSON.stringify(customMapping));
+        return sendResponse(200, { success: true, msg: "Mapping request success" });
+
+    } else if (stop) {
+        console.log(`[INFO] Publishing "stop" command to MQTT topic: ${mqtt_topic}`);
+
+        // Setup timestamp and map name
+        const ts = Date.now();
+        const date_ob = new Date(ts);
+        date_ob.setTime(date_ob.getTime() + (date_ob.getTimezoneOffset() * 60 * 1000) + (timezone * 60 * 60 * 1000));
+        const year = date_ob.getFullYear();
+        const month = String(date_ob.getMonth() + 1).padStart(2, '0');
+        const date = String(date_ob.getDate()).padStart(2, '0');
+        const hours = String(date_ob.getHours()).padStart(2, '0');
+        const minutes = String(date_ob.getMinutes()).padStart(2, '0');
+        const seconds = String(date_ob.getSeconds()).padStart(2, '0');
+        const map_name = `${user_id}_${year}-${month}-${date}_${hours}-${minutes}-${seconds}`;
+        const commandToExecute = `rosrun map_server map_saver -f ${map_path}/${map_name}`;
+        const timeoutDuration = 5000; // 5 seconds timeout
+
+        const customMapping = createMappingData({
+            mapping_instructions: { stop: true },
+            mapping_info: { save_map: true, path: map_path, map_name: map_name }
+
+        });
+        mqtt_client.publish(mqtt_topic, JSON.stringify(customMapping));
+        
+
+        console.log(`[INFO] Executing map saver command: ${commandToExecute}`);
+        // Spawn with detached true to create a new process group.
+        const map_saver_child = spawn(commandToExecute, { shell: true, detached: true });
+
+        // Set up a timeout to kill the process if it takes too long.
+        const timeout = setTimeout(() => {
+            console.error(`[ERROR] Map saver command timed out after ${timeoutDuration / 1000} seconds.`);
+            try {
+                process.kill(-map_saver_child.pid, 'SIGINT'); // Kill entire process group.
+            } catch (err) {
+                console.error(`[ERROR] Failed to kill process group: ${err.message}`);
+            }
+            sendResponse(500, { success: false, msg: "Map saver command timed out" });
+        }, timeoutDuration);
+
+        // Listen for stdout, stderr, and close events.
+        map_saver_child.stdout.on('data', (data) => {
+            console.log(`[INFO] Map saver stdout: ${data}`);
+            // Optionally clear the timeout if you get data:
+            clearTimeout(timeout);
+        });
+
+        map_saver_child.stderr.on('data', (data) => {
+            console.error(`[ERROR] Map saver stderr: ${data}`);
+            // Optionally clear the timeout if you get error data:
+            clearTimeout(timeout);
+        });
+
+        map_saver_child.on('close', (code) => {
+            clearTimeout(timeout);
+            console.log(`[INFO] Map saver process exited with code: ${code}`);
+            if (!responseSent) {
+                if (code === 0) {
+                    sendResponse(200, { success: true, msg: "Mapping request success" });
+                } else {
+                    sendResponse(500, { success: false, msg: `Map saver process exited with code ${code}` });
+                }
+            }
+        });
+    } else if (!start && !pause && !stop) {
+        console.log(`On an idle state`);
+        return sendResponse(200, { success: true, msg: "Mapping request success" });
+    
+    } else {
+        console.log(`[WARN] Invalid mapping request: No valid action provided.`);
+        return sendResponse(400, { success: false, msg: "Invalid mapping request" });
+    }
+});
+
+
+
+// LIDAR API (Enable, Disable)
+app.post('/api/lidar', verifyToken, (req, res) => {
+    const {enable, use_own_map, unit_name} = req.body;
+    const username = req.username;
+    const jsonData = {
+        enable: enable,
+        use_own_map: use_own_map
+    }
+    mqtt_client.publish(`${username}/${unit_name}/lidar`, JSON.stringify(jsonData));
+    if (enable) {
+        res.status(200).json({success: true, msg: "Lidar enabled"});
+    }
+    else {
+        res.status(200).json({success: true, msg: "Lidar disabled"});
+    }
+});
+
+// Set Own Map API
+app.post('/api/set_own_map', verifyToken, (req, res) => {
+    const {enable, map_name} = req.body;
+    if (enable) {
+        const yaml_file = map_name.replace('.pgm', '.yaml');
+        const commandToExecute = `rosrun map_server map_server ${map_path}/${yaml_file}`;
+        map_server_child = spawn(commandToExecute, {shell: true});
+
+        map_server_child.stdout.on('data', (data) => {
+            console.log(`${data}`);
+        });
+        
+        map_server_child.stderr.on('data', (data) => {
+            console.error(`${data}`);
+        });
+
+        map_server_child.on('close', (code) => {
+            console.log(`child process exited with code ${code}`);
+        });
+        res.status(200).json({success: true, msg: "Enable own map success"});
+    }
+    else {
+        if (map_server_child === undefined) {
+            res.status(200).json({success: true, msg: "Disable own map success"});
+        }
+        else {
+            psTree(map_server_child.pid, function (err, children) {
+                spawn('kill', ['-9'].concat(children.map(function (p) { return p.PID })));
+            });
+            res.status(200).json({success: true, msg: "Disable own map success"});
+        }
+    }
+})
+
+// Get PGM Map Data API
+app.get('/api/pgm_data', verifyToken, (req, res) => {
+    const user_id = req.user_id;
+    pool.query('SELECT map_name, modified_time, file_type, file_size FROM pgm_data WHERE user_id = ?', [user_id], (err, rows, fields) => {
+        if (!err) {
+            rows = rows.map((row) => {
+                if (row.created_time instanceof Date) {
+                    row.created_time = row.created_time.toISOString().replace('Z', '');
+                }
+                if (row.modified_time instanceof Date) {
+                    row.modified_time = row.modified_time.toISOString().replace('Z', '');
+                }
+                return row;
+            });
+            res.status(200).json({success: true, data: rows});
+        }
+        else {
+            res.status(500).json({success: false, msg: "Internal Server Error"});
+        }
+    })
+});
+
+// Get YAML Map Metadata API
+app.get('/api/yaml_data', verifyToken, (req, res) => {
+    const user_id = req.user_id;
+    pool.query('SELECT file_name, modified_time, file_type, file_size FROM yaml_data WHERE user_id = ?', [user_id], (err, rows, fields) => {
+        if (!err) {
+            rows = rows.map((row) => {
+                if (row.created_time instanceof Date) {
+                    row.created_time = row.created_time.toISOString().replace('Z', '');
+                }
+                if (row.modified_time instanceof Date) {
+                    row.modified_time = row.modified_time.toISOString().replace('Z', '');
+                }
+                return row;
+            });
+            res.status(200).json({success: true, data: rows});
+        }
+        else {
+            res.status(500).json({success: false, msg: "Internal Server Error"});
+        }
+    })
+});
+
+// Edit PGM Map Data API
+app.put('/api/pgm_data', verifyToken, (req, res) => {
+    const {map_name, new_map_name} = req.body;
+    pgm_file = map_name
+    yaml_file = map_name.replace('.pgm', '.yaml');
+    new_pgm_file = new_map_name
+    new_yaml_file = new_map_name.replace('.pgm', '.yaml');
+    try{
+        fs.renameSync(`${map_path}/${pgm_file}`, `${map_path}/${new_pgm_file}`);
+        fs.renameSync(`${map_path}/${yaml_file}`, `${map_path}/${new_yaml_file}`);
+    }
+    catch(err){
+        res.status(404).json({success: false, msg: "Map not found"});
+    }
+    const yaml_data = fs.readFileSync(`${map_path}/${new_yaml_file}`, 'utf8');
+    var yaml_json = yaml.load(yaml_data);
+    yaml_json.image = `${map_path}/${new_pgm_file}`;
+    const new_yaml_data = yaml.dump(yaml_json);
+    fs.writeFileSync(`${map_path}/${new_yaml_file}`, new_yaml_data, 'utf8');
+    const ts = Date.now();
+    const new_date = new Date(ts);
+    new_date.setTime(new_date.getTime() + (new_date.getTimezoneOffset()*60*1000) + (timezone*60*60*1000));
+    pool.query('UPDATE pgm_data SET map_name = ?, modified_time = ? WHERE map_name = ?', [new_pgm_file, new_date, pgm_file], (err, rows, fields) =>{
+        if (!err) {
+            if (rows.affectedRows !== 0) {
+                pool.query('UPDATE yaml_data SET file_name = ?, modified_time = ? WHERE file_name = ?', [new_yaml_file, new_date, yaml_file], (err, rows, fields) =>{
+                    if (!err) {
+                        if (rows.affectedRows !== 0) {
+                            res.status(200).json({success: true, msg: `${map_name} map data updated successfully`});
+                        }
+                        else {
+                            res.status(404).json({success: false, msg: `${map_name} yaml map metadata not found`});
+                        }
+                    }
+                    else {
+                        res.status(500).json({success: false, msg: "Internal Server Error"});
+                    }
+                })
+            }
+            else {
+                res.status(404).json({success: false, msg: `${map_name} pgm map data not found`});
+            }
+        }
+        else {
+            res.status(500).json({success: false, msg: "Internal Server Error"});
+        }
+    });
+});
+
+// DELETE PGM Map API
+app.delete('/api/pgm_data', verifyToken, (req, res) => {
+    const {map_name} = req.body;
+    pool.query('DELETE FROM pgm_data WHERE map_name = ?', [map_name], (err, rows, fields) => {
+        if (!err) {
+            if (rows.affectedRows !== 0) {
+                res.status(200).json({success: true, msg: `${map_name} map data deleted successfully`});
+            } 
+            else {
+                res.status(404).json({success: false, msg: `${map_name} map data not found`});
+            }
+        }
+        else {
+            res.status(500).json({success: false, msg: "Internal Server Error"});
+        }
+    });
+});
+
+// DELETE YAML Map Metadata API
+app.delete('/api/yaml_data', verifyToken, (req, res) => {
+    const {map_name} = req.body;
+    pool.query('DELETE FROM yaml_data WHERE file_name = ?', [map_name], (err, rows, field) => {
+        if (!err) {
+            if (rows.affectedRows !== 0) {
+                res.status(200).json({success: true, msg: `${map_name} map metadata deleted successfully`});
+            }
+            else {
+                res.status(404).json({success: false, msg: `${map_name} map metadata not found`});
+            }
+        }
+        else {
+            res.status(500).json({success: false, msg: "Internal Server Error"});
+        }
+    });      
+});
+
+app.listen(PORT,"0.0.0.0", () => console.log(`ROS Dashboard Backend API is running at 0.0.0.0:${PORT}`));

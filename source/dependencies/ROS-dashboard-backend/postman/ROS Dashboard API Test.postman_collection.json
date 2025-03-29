@@ -1,0 +1,445 @@
+{
+	"info": {
+		"_postman_id": "1feb49bb-0949-4d2b-bb98-e2c9ef94609f",
+		"name": "ROS Dashboard API Test",
+		"description": "Postman API Documentation for ROS Dashboard Backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29751539"
+	},
+	"item": [
+		{
+			"name": "Home Page API",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Mapping API",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"start\" : true,\n    \"pause\" : false,\n    \"stop\" : false,\n    \"unit_name\": \"Unit A\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/mapping",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"mapping"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All PGM Map Data",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/pgm_data",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"pgm_data"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All YAML Map Metadata",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/yaml_data",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"yaml_data"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set LIDAR API",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"enable\": true,\n    \"use_own_map\": false,\n    \"unit_name\": \"Unit A\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/lidar",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"lidar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set Own Map API",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"enable\": true,\n    \"map_name\": \"2023-12-06_10-12-50.pgm\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/set_own_map",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"set_own_map"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete PGM Map Data API",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"map_name\": \"2023-12-06_10-12-50.pgm\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/pgm_data",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"pgm_data"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete YAML Map Metadata API",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"map_name\": \"2023-12-06_10-12-50.yaml\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/yaml_data",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"yaml_data"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Rename PGM Map Data API",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"map_name\" : \"2023-12-13_11-15-16.pgm\",\n    \"new_map_name\": \"2023-12-13_11-15-17.pgm\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/api/pgm_data",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"api",
+						"pgm_data"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "User Register API",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\" : \"itbdelabo\", \n    \"email\" : \"itbdelabo@mail.com\", \n    \"full_name\" : \"ITB de Labo\", \n    \"password\": \"itbdelabo\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/user/register",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"user",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "User Login API",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\" : \"itbdelabo\",\n    \"password\" : \"itbdelabo\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/user/login",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"user",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check Username API",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\" : \"itbdelabo2\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/user/check-username",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"user",
+						"check-username"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check Email API",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\" : \"itbdelabo2@mail.com\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/user/check-email",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"user",
+						"check-email"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Unit Register API",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"unit_name\" : \"Unit A\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/unit/register",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"unit",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Unit Get All API",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{ROS_BACKEND_URL}}/unit/all",
+					"host": [
+						"{{ROS_BACKEND_URL}}"
+					],
+					"path": [
+						"unit",
+						"all"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -49,3 +49,36 @@ roslaunch msd700_webui_bringup bringup_aws.launch
 ```
 
 
+### JSON Payload
+The JSON payload should be in the following format,different for each header:
+#### Header Mapping
+```json
+{
+    "header": "mapping",
+    "mapping_instructions": {
+        "start": true,
+        "pause": false,
+        "stop": false
+    },
+    "mapping_info": {
+        "save_map": false,
+        "path": "/home/ubuntu/ros_maps",
+        "map_name": "map"
+    }      
+}
+```
+
+#### Change Mode
+```json
+{
+    "header": "change_mode",
+    "mode": {
+        "mode": "manual"
+    },
+    "parameters": {
+        "open_rviz": true,
+        "use_simulator": true,
+        "map_file": "/home/ubuntu/ros_maps/map.yaml",
+    }
+}
+```
