@@ -1,0 +1,14 @@
+[Unit]
+Description=Local folder synchronization with MySQL
+After=network-online.target
+After=mysql.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/<username>/mysql-folder-monitor/folder_monitor.py
+Restart=always
+User=<username>
+WorkingDirectory=/home/<username>/mysql-folder-monitor
+
+[Install]
+WantedBy=multi-user.target
