@@ -19,8 +19,7 @@ class ChangeModeServiceNode:
         rospy.loginfo("     Subscribe to: %s", self.input_topic)
         rospy.loginfo("     Service name: %s", self.service_name)
         
-        # tmeout service
-        rospy.wait_for_service(self.service_name, timeout=10.0)
+        # service
         self.switch_mode_srv = rospy.ServiceProxy(self.service_name, SwitchMode)
         
         rospy.loginfo("ChangeModeServiceNode activated.")
