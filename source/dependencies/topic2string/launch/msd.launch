@@ -16,7 +16,7 @@
         <param name="map_string_topic" value="/string/map" />
         <param name="map_topic" value="/map" />
         <param name="publish_rate" value="0.5" />
-        <param name="debug" value="true" />
+        <param name="debug" value="false" />
     </node>
 
     <!-- <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
@@ -32,10 +32,5 @@
         <param name="input_topic" value="/string/switch_mode" />
         <param name="service_name" value="/switch_mode" />
     </node>
-
-    <!-- Launch for switch mode launch -->
-    <include file="$(find msd700_webui_control)/launch/switch_mode.launch">
-    </include>
-
 
 </launch>

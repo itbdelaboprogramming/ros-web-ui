@@ -3,7 +3,7 @@
     <!-- Argument Simulation or Not -->
     <arg name="use_cloud" default="true"/>
     <arg name="use_aws" default="false" />
-    <arg name="use_hive" default="true" />
+    <arg name="use_hive" default="false" />
 
     <!-- Launch for topic2string pkg launchfile -->
     <include file="$(find topic2string)/launch/cloud.launch" />
@@ -11,7 +11,7 @@
     <!-- Launch the backend API -->
     <include file="$(find ros_dashboard_backend)/launch/ros_dashboard_backend.launch">
         <arg name="use_compression" value="true"/>
-        <arg name="rosbridge_websocket" value="false"/>
+        <arg name="rosbridge_websocket" value="true"/>
     </include>
 
     <!-- Launch for aws_mqtt pkg based on the use_cloud argument -->

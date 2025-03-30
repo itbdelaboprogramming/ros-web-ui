@@ -2,9 +2,7 @@
     <arg name="namespace" default="msd" />
 
     <!-- Define Arguments -->
-    <arg name="start_topic" default="/mapping/Start" />
-    <arg name="pause_topic" default="/mapping/Pause" />
-    <arg name="stop_topic" default="/mapping/Stop" />
+    <arg name="pause_topic" default="/emergency_pause" />
     <arg name="emergency_topic" default="/mux/emergency_vel" />
     <arg name="publish_frequency" default="10.0" />
 

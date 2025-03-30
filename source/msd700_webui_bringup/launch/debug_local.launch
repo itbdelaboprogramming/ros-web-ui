@@ -9,7 +9,6 @@
 
     <include file="$(find msd700_webui_bringup)/launch/bringup_msd.launch">
         <arg name="use_cloud" value="false"/>
-        <arg name="use_map_saver" value="$(arg use_dual_machine)"/>
     </include>
 
 </launch>

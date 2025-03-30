@@ -400,7 +400,7 @@ app.post('/api/mapping', verifyToken, (req, res) => {
         const minutes = String(date_ob.getMinutes()).padStart(2, '0');
         const seconds = String(date_ob.getSeconds()).padStart(2, '0');
         const map_name = `${user_id}_${year}-${month}-${date}_${hours}-${minutes}-${seconds}`;
-        const commandToExecute = `rosrun map_server map_saver -f ${map_path}/${map_name}`;
+        const commandToExecute = `rosrun map_server map_saver __name:=server_map_saver -f ${map_path}/${map_name} /map:=/server/slam/map`;
         const timeoutDuration = 5000; // 5 seconds timeout
 
         const customMapping = createMappingData({
@@ -573,6 +573,21 @@ app.post('/api/set_own_map', verifyToken, (req, res) => {
         }
     }
 })
+
+app.post('/api/emergency_stop', verifyToken, (req, res) => {
+    const {enable, unit_name} = req.body;
+    const username = req.username;
+    const jsonData = {
+        enable: enable,
+    }
+    mqtt_client.publish(`${username}/${unit_name}/emergency_stop`, JSON.stringify(jsonData));
+    if (enable) {
+        res.status(200).json({success: true, msg: "Emergency enabled"});
+    }
+    else {
+        res.status(200).json({success: true, msg: "Emergency disabled"});
+    }
+});
 
 // Get PGM Map Data API
 app.get('/api/pgm_data', verifyToken, (req, res) => {

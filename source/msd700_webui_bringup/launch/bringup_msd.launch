@@ -3,8 +3,7 @@
     <!-- Define the use_sim argument with default value true -->
     <arg name="use_cloud" default="true" />
     <arg name="use_aws" default="false" />
-    <arg name="use_hive" default="true" />
-    <arg name="use_map_saver" default="false" />
+    <arg name="use_hive" default="false" />
 
     <!-- Launch for topic2string pkg launchfile -->
     <include file="$(find topic2string)/launch/msd.launch" />
@@ -15,13 +14,11 @@
     <!-- Launch particle align validator -->
     <include file="$(find msd700_webui_control)/launch/particle_align_validator.launch" />
 
-    <!-- Launch for map saver -->
-    <group if="$(arg use_map_saver)">
-        <include file="$(find msd700_webui_control)/launch/map_saver.launch" />
-    </group>
-
     <!-- Launch for system command -->
     <include file="$(find msd700_webui_control)/launch/system_command.launch" />
+
+    <!-- Launch for Map saver -->
+    <include file="$(find msd700_webui_control)/launch/map_saver.launch" />
 
     <!-- Conditionally launch aws_mqtt pkg based on use_cloud argument -->
     <group if="$(arg use_cloud)">

@@ -8,9 +8,6 @@
     <node ns="$(arg namespace)" name="robotpose_server" pkg="topic2string" type="robotpose_from_string.py" output="screen">
     </node>
 
-    <node ns="$(arg namespace)" name="rosbridge_websocket" pkg="rosbridge_server" type="rosbridge_websocket" output="screen">
-    </node>
-
     <node ns="$(arg namespace)" name="map_from_string" pkg="topic2string" type="map_from_string.py" output="screen">
     </node>
 

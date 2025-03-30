@@ -66,7 +66,7 @@ class MapFromString:
 
                 # Publish OccupancyGrid
                 self.map_pub.publish(map_msg)
-                rospy.loginfo("Published updated OccupancyGrid.")
+                # rospy.loginfo("Published updated OccupancyGrid.")
 
         except (KeyError, ValueError) as e:
             rospy.logerr(f"Error parsing map string: {e}")

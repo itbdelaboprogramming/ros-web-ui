@@ -34,10 +34,4 @@ bridge:
     - mqtt_topic: /itbdelabo/unit1/system_command
       ros_topic: /system_command
       primitive: true
-    - mqtt_topic: /string/mappingInstruc
-      ros_topic: /string/mappingInstruc
-      primitive: true
-    - mqtt_topic: /map_saver/save_set_map
-      ros_topic: /map_saver/save_set_map
-      primitive: true
     

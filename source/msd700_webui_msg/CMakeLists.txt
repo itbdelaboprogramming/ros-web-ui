@@ -57,6 +57,7 @@ add_message_files(
 add_service_files(
   FILES
   SwitchMode.srv
+  SetMapPath.srv
 )
 
 ## Generate messages in the 'msg' folder
