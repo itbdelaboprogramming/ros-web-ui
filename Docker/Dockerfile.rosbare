@@ -5,13 +5,24 @@ RUN apt-get update && apt-get install -y \
     nano \
     git \
     python3-pip \
+    curl \
     mosquitto mosquitto-clients \
     ros-noetic-catkin \
     ros-noetic-mqtt-client \
     ros-noetic-rosbridge-suite \
     ros-noetic-move-base \
-    ros-noetic-map-server \
-    && rm -rf /var/lib/apt/lists/*
+    ros-noetic-map-server
+
+# Setup installation of node and npm
+# Install NVM, Node.js, and npm
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash \
+    && export NVM_DIR="$HOME/.nvm" \
+    && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
+    && nvm install --lts \
+    && nvm use --lts \
+    && npm install -g npm
+
+RUN rm -rf /var/lib/apt/lists/*
 
 # Set Up User Permissions
 ARG USERNAME=itbdelabo
