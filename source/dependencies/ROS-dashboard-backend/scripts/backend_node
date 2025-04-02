@@ -94,48 +94,6 @@ function deepMerge(target, source) {
     }
     return target;
   }
-  
-// Function to create the JSON object using default values and any overrides provided.
-function createMappingData(overrides = {}) {
-// Default JSON structure
-const defaultData = {
-    header: "mapping",
-    mapping_instructions: {
-    start: false,
-    pause: false,
-    stop: false
-    },
-    mapping_info: {
-    save_map: false,
-    path: "/home/ubuntu/ros_maps",
-    map_name: "map"
-    }
-};
-// Merge the default data with the overrides provided by the user.
-return deepMerge(JSON.parse(JSON.stringify(defaultData)), overrides);
-}
-
-function createNavigationData(overrides = {}) {
-    // Default JSON structure
-    const defaultData = {
-        header: "navigation",
-        mode: {
-            mode: "single",
-        },
-        instructions: {
-            pause: false,
-            stop: false,
-        },
-        parameters: {
-            open_rviz: true,
-            use_simulator: true,
-            map_file: "/home/ubuntu/ros_maps/map.yaml",
-        },
-    };
-
-    // Merge the default data with the overrides provided by the user
-    return deepMerge(JSON.parse(JSON.stringify(defaultData)), overrides);
-}
 
 function createMSDSystemData(overrides = {}) {
     // Default JSON structure
@@ -150,7 +108,6 @@ function createMSDSystemData(overrides = {}) {
     // Merge the default data with the overrides provided by the user
     return deepMerge(JSON.parse(JSON.stringify(defaultData)), overrides);
 }
-
 
 // Middleware JWT (JSON Web Token)
 const verifyToken = (req, res, next) => {
@@ -170,6 +127,55 @@ const verifyToken = (req, res, next) => {
     }
     else {
         res.status(401).json({success: false, msg: "Unauthorized"});
+    }
+}
+
+function setOwnMap({ enable, map_name, map_path, unit_name, username }) {
+
+    // Print Request Data
+    console.log(`[INFO] Received set own map request:`, {
+        username,
+        unit_name,
+        enable,
+        map_name,
+        map_path,
+    });
+
+    if (enable) {
+        const yaml_file = map_name.replace('.pgm', '.yaml');
+
+        // Log received data
+        console.log(`Received enable own map: ${enable}`);
+        console.log(`Received map name: ${map_name}`);
+        console.log(`Received yaml file name: ${yaml_file}`);
+
+        const commandToExecute = `rosrun map_server map_server __name:=server_map_server ${map_path}/${yaml_file} map:=/server/map`;
+
+        console.log(`[INFO] Command to execute: ${commandToExecute}`);
+        map_server_child = spawn(commandToExecute, { shell: true });
+
+        map_server_child.stdout.on('data', (data) => {
+            console.log(`${data}`);
+        });
+
+        map_server_child.stderr.on('data', (data) => {
+            console.error(`${data}`);
+        });
+
+        map_server_child.on('close', (code) => {
+            console.log(`child process exited with code ${code}`);
+        });
+
+        return { success: true, msg: "Enable own map success" };
+    } else {
+        if (map_server_child === undefined) {
+            return { success: true, msg: "Disable own map success" };
+        } else {
+            psTree(map_server_child.pid, function (err, children) {
+                spawn('kill', ['-9'].concat(children.map(function (p) { return p.PID; })));
+            });
+            return { success: true, msg: "Disable own map success" };
+        }
     }
 }
 
@@ -341,7 +347,6 @@ app.get('/unit/all', verifyToken, (req, res) => {
 });
 
 
-
 // Mapping API
 app.post('/api/mapping', verifyToken, (req, res) => {
     const { start, pause, stop, unit_name } = req.body;
@@ -401,14 +406,7 @@ app.post('/api/mapping', verifyToken, (req, res) => {
         const seconds = String(date_ob.getSeconds()).padStart(2, '0');
         const map_name = `${user_id}_${year}-${month}-${date}_${hours}-${minutes}-${seconds}`;
         const commandToExecute = `rosrun map_server map_saver __name:=server_map_saver -f ${map_path}/${map_name} /map:=/server/slam/map`;
-        const timeoutDuration = 5000; // 5 seconds timeout
-
-        const customMapping = createMappingData({
-            mapping_instructions: { stop: true },
-            mapping_info: { save_map: true, path: map_path, map_name: map_name }
-
-        });
-        mqtt_client.publish(mqtt_topic, JSON.stringify(customMapping));
+        const timeoutDuration = 10000; // 5 seconds timeout
 
         const robotCommand = createMSDSystemData({
             header: "mapping",
@@ -421,7 +419,6 @@ app.post('/api/mapping', verifyToken, (req, res) => {
             },
         });
         mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
-        
 
         console.log(`[INFO] Executing map saver command: ${commandToExecute}`);
         // Spawn with detached true to create a new process group.
@@ -491,88 +488,238 @@ app.post('/api/lidar', verifyToken, (req, res) => {
     }
 });
 
-app.post('/api/navigation', verifyToken, (req, res) => {
-    const { action, targets, unit_name } = req.body;
-    const user_id = req.user_id;
+// Navigation API Endpoints
+/**
+ * @api {post} /api/navigation/init Initialize Navigation System
+ * @apiName InitNavigation
+ * @apiGroup Navigation
+ * 
+ * @apiBody {String} unit_name Name of the robot unit
+ * @apiBody {String} map_name Name of the map to be used
+ * @apiBody {String} [map_path] Path to the map storage location
+ * 
+ * @apiSuccess {Boolean} success Operation success status
+ * @apiSuccess {String} msg Response message
+ */
+app.post('/api/navigation/init', verifyToken, (req, res) => {
+    const { unit_name, map_name, map_path = "/home/ubuntu/ros_maps" } = req.body;
     const username = req.username;
-  
-    const commandPayload = createSystemCommand({
-      header: "navigation",
-      command: action,
-      config: {
-        operation_mode: targets.length > 1 ? "multi" : "single",
-      },
-      data: {
-        targets: targets.map(t => ({
-          x: t.x,
-          y: t.y,
-          theta: t.theta || 0.0,
-        }))
-      }
-    });
-    mqtt_client.publish(`${username}/${unit_name}/system_command`, JSON.stringify(commandPayload));
-    res.status(200).json({ success: true, msg: "Navigation command processed" });
-  });
+    const mqtt_topic = `/${username}/${unit_name}/system_command`;
 
-// Set Own Map API
-app.post('/api/set_own_map', verifyToken, (req, res) => {
-    const {enable, map_name, unit_name} = req.body;
-    const user_id = req.user_id;
-    const username = req.username;
-    mqtt_topic = `/${username}/${unit_name}/system_command`;
-
-    if (enable) {
-        const yaml_file = map_name.replace('.pgm', '.yaml');
-
-        // Receive the map name and yaml file name from the request body
-        console.log(`Received enable own map: ${enable}`);
-        console.log(`Received map name: ${map_name}`);
-        console.log(`Received yaml file name: ${yaml_file}`);
-
-        const robotCommand = createMSDSystemData({
-            header: "navigation",
-            command: "init",
-            config: {
-                resource: {
-                    operation_mode: "single",
-                    map_file: `${map_path}/${yaml_file}`,
-                    map_name: map_name,
-                }
+    try {
+        setOwnMap({
+            enable: true,
+            map_name: map_name,
+            map_path: map_path,
+            unit_name: unit_name,
+            username: username
+        }
+        );
+    } catch (error) {
+        console.error(`[ERROR] Failed to set own map: ${error.message}`);
+        return res.status(500).json({ success: false, msg: "Failed to set own map" });
+    }
+    console.log(`[INFO] Publishing init command to MQTT topic: ${mqtt_topic}`);
+    // Create the robot command
+    const robotCommand = createMSDSystemData({
+        header: "navigation",
+        command: "init",
+        config: {
+            resource: {
+                map_name: map_name,
+                default_save_path: map_path,
             }
-        });
+        }
+    });
+    
+    try {
         mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
-
-        const commandToExecute = `rosrun map_server map_server ${map_path}/${yaml_file} map:=/server/map`;
-
-        console.log(`[INFO] Command to execute: ${commandToExecute}`);
-        map_server_child = spawn(commandToExecute, {shell: true});
-
-        map_server_child.stdout.on('data', (data) => {
-            console.log(`${data}`);
-        });
-        
-        map_server_child.stderr.on('data', (data) => {
-            console.error(`${data}`);
-        });
-
-        map_server_child.on('close', (code) => {
-            console.log(`child process exited with code ${code}`);
-        });
-        res.status(200).json({success: true, msg: "Enable own map success"});
-
     }
-    else {
-        if (map_server_child === undefined) {
-            res.status(200).json({success: true, msg: "Disable own map success"});
-        }
-        else {
-            psTree(map_server_child.pid, function (err, children) {
-                spawn('kill', ['-9'].concat(children.map(function (p) { return p.PID })));
-            });
-            res.status(200).json({success: true, msg: "Disable own map success"});
-        }
+    catch (error) {
+        console.error(`[ERROR] Failed to publish MQTT message: ${error.message}`);
+        return res.status(500).json({ success: false, msg: "Failed to publish MQTT message" });
     }
-})
+    res.status(200).json({ 
+        success: true, 
+        msg: "Navigation system initialized" 
+    });
+});
+
+/**
+ * @api {post} /api/navigation/deactivate Deactivate Navigation
+ * @apiName DeactivateNavigation
+ * @apiGroup Navigation
+ * 
+ * @apiBody {String} unit_name Name of the robot unit
+ * 
+ * @apiSuccess {Boolean} success Status of the operation
+ * @apiSuccess {String} msg Response message
+ */
+app.post('/api/navigation/deactivate', verifyToken, (req, res) => {
+    const { unit_name } = req.body;
+    const username = req.username;
+    const mqtt_topic = `/${username}/${unit_name}/system_command`;
+
+    // Deactivate setOwnMap
+    try {
+        setOwnMap({
+            enable: false,
+            map_name: "",
+            map_path: "",
+            unit_name: unit_name,
+            username: username
+        });
+    } catch (error) {
+        console.error(`[ERROR] Failed to deactivate own map: ${error.message}`);
+        return res.status(500).json({ success: false, msg: "Failed to deactivate own map" });
+    }
+    console.log(`[INFO] Publishing deactivate command to MQTT topic: ${mqtt_topic}`);
+    // Create the robot command
+    const robotCommand = createMSDSystemData({
+        header: "navigation",
+        command: "deactivate"
+    });
+    
+    try {
+        mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
+    }
+    catch (error) {
+        console.error(`[ERROR] Failed to publish MQTT message: ${error.message}`);
+        return res.status(500).json({ success: false, msg: "Failed to publish MQTT message" });
+    }
+    res.status(200).json({ 
+        success: true, 
+        msg: "Navigation system deactivated" 
+    });
+});
+
+/**
+ * @api {post} /api/navigation/start Start or Resume Navigation
+ * @apiName StartNavigation
+ * @apiGroup Navigation
+ * 
+ * @apiBody {String} unit_name Name of the robot unit
+ * 
+ * @apiSuccess {Boolean} success Operation success status
+ * @apiSuccess {String} msg Response message
+ */
+app.post('/api/navigation/start', verifyToken, (req, res) => {
+    const { unit_name } = req.body;
+    const username = req.username;
+    const mqtt_topic = `/${username}/${unit_name}/system_command`;
+
+    const robotCommand = createMSDSystemData({
+        header: "navigation",
+        command: "start"
+    });
+    
+    mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
+    res.status(200).json({ 
+        success: true, 
+        msg: "Navigation started/resumed" 
+    });
+});
+
+
+/**
+ * @api {post} /api/navigation/pause Pause Navigation
+ * @apiName PauseNavigation
+ * @apiGroup Navigation
+ * 
+ * @apiBody {String} unit_name Name of the robot unit
+ * 
+ * @apiSuccess {Boolean} success Operation success status
+ * @apiSuccess {String} msg Response message
+ */
+app.post('/api/navigation/pause', verifyToken, (req, res) => {
+    const { unit_name } = req.body;
+    const username = req.username;
+    const mqtt_topic = `/${username}/${unit_name}/system_command`;
+
+    const robotCommand = createMSDSystemData({
+        header: "navigation",
+        command: "pause"
+    });
+    
+    mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
+    res.status(200).json({ 
+        success: true, 
+        msg: "Navigation paused" 
+    });
+});
+
+/**
+ * @api {post} /api/navigation/home Navigate to Home Position
+ * @apiName NavigateHome
+ * @apiGroup Navigation
+ * 
+ * @apiBody {String} unit_name Name of the robot unit
+ * @apiBody {Object} [home_position] Custom home position
+ * @apiBody {Number} [home_position.x] X coordinate
+ * @apiBody {Number} [home_position.y] Y coordinate
+ * @apiBody {Number} [home_position.theta] Orientation
+ * 
+ * @apiSuccess {Boolean} success Operation success status
+ * @apiSuccess {String} msg Response message
+ */
+app.post('/api/navigation/home', verifyToken, (req, res) => {
+    const { unit_name, home_position } = req.body;
+    const username = req.username;
+    const mqtt_topic = `/${username}/${unit_name}/system_command`;
+
+    const robotCommand = createMSDSystemData({
+        header: "navigation",
+        command: "home",
+        config: home_position ? { target: home_position } : {}
+    });
+    
+    mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
+    res.status(200).json({ 
+        success: true, 
+        msg: "Navigating to home position" 
+    });
+});
+
+/**
+ * @api {post} /api/navigation/target Set Navigation Target
+ * @apiName SetTarget
+ * @apiGroup Navigation
+ * 
+ * @apiBody {String} unit_name Name of the robot unit
+ * @apiBody {Number} x Target X coordinate
+ * @apiBody {Number} y Target Y coordinate
+ * @apiBody {Number} theta Target orientation
+ * 
+ * @apiSuccess {Boolean} success Operation success status
+ * @apiSuccess {String} msg Response message
+ */
+app.post('/api/navigation/target', verifyToken, (req, res) => {
+    const { unit_name, x, y, theta } = req.body;
+    const username = req.username;
+    const mqtt_topic = `/${username}/${unit_name}/system_command`;
+
+    // Validasi parameter
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof theta !== 'number') {
+        return res.status(400).json({
+            success: false,
+            msg: "Invalid target coordinates"
+        });
+    }
+
+    const robotCommand = createMSDSystemData({
+        header: "navigation",
+        command: "target",
+        config: {
+            target: { x, y, theta }
+        }
+    });
+    
+    mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
+    res.status(200).json({ 
+        success: true, 
+        msg: "Navigation target published" 
+    });
+});
 
 app.post('/api/emergency_stop', verifyToken, (req, res) => {
     const {enable, unit_name} = req.body;

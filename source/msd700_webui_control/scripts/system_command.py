@@ -164,8 +164,14 @@ class NavigationCommandHandler(CommandHandler):
     """Handler untuk command navigation"""
     
     def __init__(self):
+        super().__init__()
+
+        # ======= Initialization ========
+        self.switch_mode_srv = rospy.ServiceProxy('/switch_mode', SwitchMode)
+        
         self.actions = {
             'init': self._init_navigation,
+            'deactivate': self._deactivate_navigation,
             'start': self._start_navigation,
             'pause': self._pause_navigation
         }
@@ -184,10 +190,55 @@ class NavigationCommandHandler(CommandHandler):
 
     def _init_navigation(self, data: dict):
         config = data.get('config', {})
-        map_file = config.get('resource', {}).get('map_file', '')
+        map_name = config.get('resource', {}).get('map_name', '')
+        map_path = config.get('resource', {}).get('default_save_path', '/default/path')
         operation_mode = config.get('operation_mode', 'single')
+        # Remove the file extension from map_name
+        map_name = os.path.splitext(map_name)[0]
+        # COmbine map_path and map_name with format {map_path}/msd/{map_name}.yaml
+        map_file = os.path.join(map_path, 'msd', f"{map_name}.yaml")
         
-        rospy.loginfo(f"Initializing {operation_mode} mode navigation with map: {map_file}")
+        # Check if the map file exists
+        if not os.path.exists(map_file):
+            rospy.logerr(f"Map file {map_file} does not exist.")
+            return
+        
+        rospy.loginfo(f"Initializing {operation_mode} mode navigation with map: {map_name} at {map_path} executing {map_file}")
+        
+        # Prepare the service request
+        mode_msg = SwitchModeMsg(
+            mode='navigation',
+            open_rviz=True,
+            use_simulator=True,
+            map_file=map_file,
+            point_mode=operation_mode
+        )
+        
+        try:
+            rospy.loginfo(f"Calling /switch_mode service with: {mode_msg}")
+            response = self.switch_mode_srv(mode_msg)
+            rospy.loginfo(f"Service response: success={response.success}, message={response.message}")
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Service call to /switch_mode failed: {str(e)}")
+    
+    def _deactivate_navigation(self, data: dict):
+        rospy.loginfo("Deactivating navigation...")
+        
+        # Prepare service request for switching to idle mode
+        mode_msg = SwitchModeMsg(
+            mode='idle',
+            open_rviz=False,
+            use_simulator=False,
+            map_file='NaN',
+            point_mode='NaN'
+        )
+        
+        try:
+            rospy.loginfo(f"Calling /switch_mode service with: {mode_msg}")
+            response = self.switch_mode_srv(mode_msg)
+            rospy.loginfo(f"Service response: success={response.success}, message={response.message}")
+        except rospy.ServiceException as e:
+            rospy.logerr(f"Service call to /switch_mode failed: {str(e)}")
         
     def _start_navigation(self, data: dict):
         rospy.loginfo("Starting navigation...")

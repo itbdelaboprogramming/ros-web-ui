@@ -11,18 +11,15 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-mqtt-client \
     ros-noetic-rosbridge-suite \
     ros-noetic-move-base \
-    ros-noetic-map-server
-
-# Setup installation of node and npm
-# Install NVM, Node.js, and npm
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash \
-    && export NVM_DIR="$HOME/.nvm" \
-    && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
-    && nvm install --lts \
-    && nvm use --lts \
-    && npm install -g npm
-
-RUN rm -rf /var/lib/apt/lists/*
+    ros-noetic-map-server \
+    ros-noetic-tf \
+    ros-noetic-std-msgs \
+    ros-noetic-geometry-msgs \
+    # Install Node.js & npm
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set Up User Permissions
 ARG USERNAME=itbdelabo
