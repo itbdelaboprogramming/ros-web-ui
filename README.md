@@ -32,6 +32,21 @@ chmod +x docker.sh
 ./docker.sh
 ```
 
+### Setup Certificates
+Placed all the required certificates in the `Certificates` folder and run the following command:
+```bash
+chmod +x deploy_certs.sh
+```
+
+To run in save mode, run the following command:
+```bash
+./deploy_certs.sh
+```
+To run in overwrite mode, run the following command:
+```bash
+./deploy_certs.sh --force
+```
+
 ## Running the application
 This application is divided into two parts: msd system and aws system.
 ### MSD System
