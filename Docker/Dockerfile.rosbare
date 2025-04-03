@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     nano \
     git \
     python3-pip \
+    curl \
     mosquitto mosquitto-clients \
     ros-noetic-catkin \
     ros-noetic-mqtt-client \
