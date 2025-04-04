@@ -168,6 +168,8 @@ class NavigationCommandHandler(CommandHandler):
 
         # ======= Initialization ========
         self.switch_mode_srv = rospy.ServiceProxy('/switch_mode', SwitchMode)
+        # Initialize the topic publisher for pause command
+        self.pause_pub = rospy.Publisher('/emergency_pause', Bool, queue_size=10, latch=True)
         
         self.actions = {
             'init': self._init_navigation,
@@ -193,6 +195,11 @@ class NavigationCommandHandler(CommandHandler):
         map_name = config.get('resource', {}).get('map_name', '')
         map_path = config.get('resource', {}).get('default_save_path', '/default/path')
         operation_mode = config.get('operation_mode', 'single')
+        
+        # Create and publish the pause state message
+        pause_msg = Bool(data=False)
+        self.pause_pub.publish(pause_msg)
+        
         # Remove the file extension from map_name
         map_name = os.path.splitext(map_name)[0]
         # COmbine map_path and map_name with format {map_path}/{map_name}.yaml

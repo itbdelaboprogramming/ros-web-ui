@@ -1,6 +1,7 @@
 <launch>
 
     <arg name="namespace" default="topic2string/msd" />
+    <param name="use_robot_pose" value="false" />
 
     <node ns="$(arg namespace)" name="msd_action_client" pkg="topic2string" type="action_client.py" output="screen">
     </node>
@@ -8,9 +9,11 @@
     <node ns="$(arg namespace)" name="robotpose_msd" pkg="topic2string" type="robotpose_to_string.py" output="screen">
     </node>
 
-    <node ns="$(arg namespace)" name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" output="screen">
-        <remap from="robot_pose" to="/client/robotpose"/>
-    </node>
+    <group if="$(arg use_robot_pose)">
+        <node ns="$(arg namespace)" name="robot_pose_publisher" pkg="robot_pose_publisher" type="robot_pose_publisher" output="screen">
+            <remap from="robot_pose" to="/client/robotpose"/>
+        </node>
+    </group>
 
     <node pkg="topic2string" type="map_compression_pipeline.py" name="map_compression_node" output="screen">
         <param name="mode" value="compress" />
