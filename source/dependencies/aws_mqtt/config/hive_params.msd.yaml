@@ -12,6 +12,10 @@ client:
 bridge:
   # types results in the error message Connection to broker lost, will try to reconnect...
   ros2mqtt:
+    # Outgoing (MSD -> Server)
+    - ros_topic: /msd/ping
+      mqtt_topic: /server/ping
+      primitive: true
     - ros_topic: /string/robotpose
       mqtt_topic: /string/robotpose
       primitive: true
@@ -21,10 +25,12 @@ bridge:
     - ros_topic: /string/map
       mqtt_topic: /string/map
       primitive: true
-    - ros_topic: /pingpong_msd
-      mqtt_topic: /pingpong
-      primitive: true
+
   mqtt2ros:
+    # Incoming (Server -> MSD)
+    - ros_topic: /msd/pong
+      mqtt_topic: /msd/pong
+      primitive: true
     - mqtt_topic: /string/move_base/goal
       ros_topic: /string/move_base/goal
       primitive: true
