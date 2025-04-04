@@ -430,45 +430,45 @@ app.post('/api/mapping', verifyToken, (req, res) => {
         });
         mqtt_client.publish(mqtt_topic, JSON.stringify(robotCommand));
 
-        console.log(`[INFO] Executing map saver command: ${commandToExecute}`);
-        // Spawn with detached true to create a new process group.
-        const map_saver_child = spawn(commandToExecute, { shell: true, detached: true });
+        // console.log(`[INFO] Executing map saver command: ${commandToExecute}`);
+        // // Spawn with detached true to create a new process group.
+        // const map_saver_child = spawn(commandToExecute, { shell: true, detached: true });
 
-        // Set up a timeout to kill the process if it takes too long.
-        const timeout = setTimeout(() => {
-            console.error(`[ERROR] Map saver command timed out after ${timeoutDuration / 1000} seconds.`);
-            try {
-                process.kill(-map_saver_child.pid, 'SIGINT'); // Kill entire process group.
-            } catch (err) {
-                console.error(`[ERROR] Failed to kill process group: ${err.message}`);
-            }
-            sendResponse(500, { success: false, msg: "Map saver command timed out" });
-        }, timeoutDuration);
+        // // Set up a timeout to kill the process if it takes too long.
+        // const timeout = setTimeout(() => {
+        //     console.error(`[ERROR] Map saver command timed out after ${timeoutDuration / 1000} seconds.`);
+        //     try {
+        //         process.kill(-map_saver_child.pid, 'SIGINT'); // Kill entire process group.
+        //     } catch (err) {
+        //         console.error(`[ERROR] Failed to kill process group: ${err.message}`);
+        //     }
+        //     sendResponse(500, { success: false, msg: "Map saver command timed out" });
+        // }, timeoutDuration);
 
-        // Listen for stdout, stderr, and close events.
-        map_saver_child.stdout.on('data', (data) => {
-            console.log(`[INFO] Map saver stdout: ${data}`);
-            // Optionally clear the timeout if you get data:
-            clearTimeout(timeout);
-        });
+        // // Listen for stdout, stderr, and close events.
+        // map_saver_child.stdout.on('data', (data) => {
+        //     console.log(`[INFO] Map saver stdout: ${data}`);
+        //     // Optionally clear the timeout if you get data:
+        //     clearTimeout(timeout);
+        // });
 
-        map_saver_child.stderr.on('data', (data) => {
-            console.error(`[ERROR] Map saver stderr: ${data}`);
-            // Optionally clear the timeout if you get error data:
-            clearTimeout(timeout);
-        });
+        // map_saver_child.stderr.on('data', (data) => {
+        //     console.error(`[ERROR] Map saver stderr: ${data}`);
+        //     // Optionally clear the timeout if you get error data:
+        //     clearTimeout(timeout);
+        // });
 
-        map_saver_child.on('close', (code) => {
-            clearTimeout(timeout);
-            console.log(`[INFO] Map saver process exited with code: ${code}`);
-            if (!responseSent) {
-                if (code === 0) {
-                    sendResponse(200, { success: true, msg: "Mapping request success" });
-                } else {
-                    sendResponse(500, { success: false, msg: `Map saver process exited with code ${code}` });
-                }
-            }
-        });
+        // map_saver_child.on('close', (code) => {
+        //     clearTimeout(timeout);
+        //     console.log(`[INFO] Map saver process exited with code: ${code}`);
+        //     if (!responseSent) {
+        //         if (code === 0) {
+        //             sendResponse(200, { success: true, msg: "Mapping request success" });
+        //         } else {
+        //             sendResponse(500, { success: false, msg: `Map saver process exited with code ${code}` });
+        //         }
+        //     }
+        // });
     } else if (!start && !pause && !stop) {
         console.log(`On an idle state`);
         return sendResponse(200, { success: true, msg: "Mapping request success" });
