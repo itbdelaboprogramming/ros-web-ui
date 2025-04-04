@@ -61,6 +61,8 @@
 
   <exec_depend>message_generation</exec_depend>
   <exec_depend>msd700_webui_msg</exec_depend>
+  <exec_depend>rospy_message_converter</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

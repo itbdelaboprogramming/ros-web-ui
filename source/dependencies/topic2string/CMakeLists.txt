@@ -221,6 +221,8 @@ catkin_install_python(PROGRAMS
 
   scripts/map_to_string.py
   scripts/map_from_string.py
+  scripts/map_monitoring.py
+  scripts/map_compression_pipeline.py
 
   scripts/mapping_serializer.py
   scripts/mapping_deserializer.py

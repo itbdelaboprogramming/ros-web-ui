@@ -12,12 +12,16 @@
         <remap from="robot_pose" to="/client/robotpose"/>
     </node>
 
-    <node ns="$(arg namespace)" name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
+    <node pkg="topic2string" type="map_compression_pipeline.py" name="map_compression_node" output="screen">
+        <param name="mode" value="compress" />
+    </node>
+
+    <!-- <node ns="$(arg namespace)" name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
         <param name="map_string_topic" value="/string/map" />
         <param name="map_topic" value="/map" />
         <param name="publish_rate" value="0.5" />
         <param name="debug" value="false" />
-    </node>
+    </node> -->
 
     <!-- <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
     </node> -->

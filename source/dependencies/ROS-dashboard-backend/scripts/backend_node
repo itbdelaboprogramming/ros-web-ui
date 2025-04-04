@@ -65,9 +65,19 @@ pool.getConnection((err, connection) => {
     }
 });
 
-const mqtt_client = mqtt.connect(`mqtt://${mqtt_broker_ip}`);
+const options = {
+    clientId: `mqtt_client_${Math.random().toString(16).slice(2)}`,
+    keepalive: 60,
+    reconnectPeriod: 1000
+};
+
+const mqtt_client = mqtt.connect(`mqtt://${mqtt_broker_ip}`, options);
 mqtt_client.on('connect', () => {
     rosnodejs.log.info(`Connected to MQTT Broker at ${mqtt_broker_ip}`);
+});
+
+mqtt_client.on('error', (err) => {
+    rosnodejs.log.error(`MQTT connection error: ${err}`);
 });
   
 app.use(bodyParser.json());
