@@ -5,6 +5,8 @@ from config import *
 import os
 import mysql.connector
 from mysql.connector import Error
+import threading
+from sync_from_database import sync_database_to_local
 from import_data_to_mysql import (
     read_yaml_file,
     read_pgm_file,
@@ -20,6 +22,8 @@ class Watcher:
         self.observer = Observer()
         self.directory = DIRECTORY_TO_WATCH
         
+        self.sync_interval = 3
+        
         # Logging the system
         print("Monitoring directory:", self.directory, flush=True)
         print(f"Database Host: {MYSQL_HOST}")
@@ -29,10 +33,22 @@ class Watcher:
         print(f"Convert Timezone: {CONVERT_TIMEZONE}")
         print("Starting to monitor files...")
         print("=========================================")
+        
+    def schedule_sync(self):
+        while True:
+            time.sleep(self.sync_interval)
+            try:
+                sync_database_to_local()
+                print("Periodic sync from database completed.")
+            except Exception as e:
+                print(f"Periodic sync error: {e}")
 
     def run(self):
         # Process existing files before starting the observer
         process_existing_files(self.directory)
+        
+        sync_thread = threading.Thread(target=self.schedule_sync)
+        sync_thread.start()
         
         event_handler = Handler()
         self.observer.schedule(event_handler, self.directory, recursive=True)

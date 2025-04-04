@@ -195,8 +195,8 @@ class NavigationCommandHandler(CommandHandler):
         operation_mode = config.get('operation_mode', 'single')
         # Remove the file extension from map_name
         map_name = os.path.splitext(map_name)[0]
-        # COmbine map_path and map_name with format {map_path}/msd/{map_name}.yaml
-        map_file = os.path.join(map_path, 'msd', f"{map_name}.yaml")
+        # COmbine map_path and map_name with format {map_path}/{map_name}.yaml
+        map_file = os.path.join(map_path, f"{map_name}.yaml")
         
         # Check if the map file exists
         if not os.path.exists(map_file):
