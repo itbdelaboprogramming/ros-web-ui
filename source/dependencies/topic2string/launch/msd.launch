@@ -16,22 +16,6 @@
         <param name="mode" value="compress" />
     </node>
 
-    <!-- <node ns="$(arg namespace)" name="map_to_string" pkg="topic2string" type="map_to_string.py" output="screen">
-        <param name="map_string_topic" value="/string/map" />
-        <param name="map_topic" value="/map" />
-        <param name="publish_rate" value="0.5" />
-        <param name="debug" value="false" />
-    </node> -->
-
-    <!-- <node name="mapping_deserializer" pkg="topic2string" type="mapping_deserializer.py" output="screen">
-    </node> -->
-
-    <node ns="$(arg namespace)" name="mapping_deserializer" pkg="topic2string" type="mapping_instr_deserializer.py" output="screen">
-    </node>
-
-    <node ns="$(arg namespace)" name="mapping_instr" pkg="topic2string" type="mapping_instr.py" output="screen">
-    </node>
-
     <node ns="$(arg namespace)" name="mode_deserialize" pkg="topic2string" type="change_mode_deserialize.py" output="log">
         <param name="input_topic" value="/string/switch_mode" />
         <param name="service_name" value="/switch_mode" />
