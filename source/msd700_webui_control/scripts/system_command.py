@@ -124,8 +124,8 @@ class MappingCommandHandler(CommandHandler):
         save_path = config.get('resource', {}).get('default_save_path', '/default/path')
         
         rospy.loginfo(f"Saving map {map_name} to {save_path}")
-        # Construct the map path as save_path + '/msd'
-        map_path = f"{save_path}/msd"
+        # Construct the map path as save_path
+        map_path = save_path
         
         try:
             rospy.loginfo(f"Calling /map_saver/save_map service with: map_path={map_path}, map_name={map_name}")
