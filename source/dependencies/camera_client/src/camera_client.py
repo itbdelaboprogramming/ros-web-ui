@@ -49,13 +49,17 @@ class VideoCamera(VideoStreamTrack):
         video_frame.time_base = time_base
         return video_frame
 
+    def stop(self):
+        if self.cap.isOpened():
+            self.cap.release()
+
     def __del__(self):
         self.cap.release()
 
 class CameraClient:
     """Client that connects to a signaling server and streams video via WebRTC."""
     
-    STREAMER_ID = "streamer"
+    STREAMER_ID = "AX591"
     CLIENT_ID = "client"
     # SERVER = "ws://13.215.160.171:3002"
     SERVER = "wss://delabo.asthaweb.com/signalling"
@@ -87,7 +91,8 @@ class CameraClient:
             print("Registering streamer...")
             await self.send_message("register", {
                 "type": "register", 
-                "id": self.STREAMER_ID
+                "id": self.STREAMER_ID,
+                "client_type": "robot",
             })
             self.logger.info(f"Registered as {self.STREAMER_ID}")
             
@@ -117,7 +122,7 @@ class CameraClient:
         while True:
             if self.websocket:
                 try:
-                    await self.send_message("ping", {"type": "ping"})
+                    await self.send_message("ping", {"type": "ping", "id": self.STREAMER_ID, "target": "server"})
                     await asyncio.sleep(15)  # Every 15 seconds
                 except websockets.exceptions.ConnectionClosed:
                     self.logger.warning("WebSocket closed during ping")
@@ -145,7 +150,7 @@ class CameraClient:
             async for message in self.websocket:
                 try:
                     data = json.loads(message)
-                    self.logger.info(f"Received message: {data.get('type')} from {data.get('sender', 'unknown')}")
+                    self.logger.info(f"Received message: {data.get('type')} from {data.get('id', 'unknown')}")
                     
                     # Handle different message types
                     if data.get("type") == "error":
@@ -161,9 +166,9 @@ class CameraClient:
                             "from": data.get("from"),
                             "id": self.STREAMER_ID
                         })
-                    
+
                     elif data.get("type") == "client_ready":
-                        # Start streaming when a client indicates they're ready
+                        # Start streaming
                         self.logger.info("Client ready to receive stream, starting...")
                         await self.start_stream()
                     
@@ -308,8 +313,35 @@ class CameraClient:
                 elif state == "failed":
                     self.logger.error("ICE connection failed - attempting to restart ICE")
                     await self.peer_connection.restartIce()
-                elif state == "disconnected" or state == "closed":
+                elif state == "disconnected":
+                    # Set a short timeout before considering it a full disconnection
+                    self.logger.warning("Client connection unstable, will close if not recovered quickly")
                     self.is_streaming = False
+                    
+                    # Create a task that will close the connection after a short delay
+                    # unless the state changes back to connected
+                    async def disconnect_timeout():
+                        await asyncio.sleep(2)  # Short 2-second timeout
+                        if (self.peer_connection and 
+                            self.peer_connection.iceConnectionState == "disconnected"):
+                            self.logger.warning("Client disconnection timeout reached, closing connection")
+                            if self.video_track:
+                                self.video_track.stop()
+                                self.video_track = None
+                            await self.peer_connection.close()
+                            self.peer_connection = None
+                    
+                    asyncio.create_task(disconnect_timeout())
+                    
+                elif state == "closed":
+                    # Handle immediate closure for the "closed" state
+                    self.is_streaming = False
+                    self.logger.warning("Client connection closed, stopping stream")
+                    if self.video_track:
+                        self.video_track.stop()
+                        self.video_track = None
+                    await self.peer_connection.close()
+                    self.peer_connection = None
             
             # Create the offer
             self.logger.info("Creating SDP offer...")
