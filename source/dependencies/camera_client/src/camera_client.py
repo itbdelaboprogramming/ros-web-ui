@@ -10,41 +10,35 @@ from logging.handlers import RotatingFileHandler
 from aiortc import RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, RTCConfiguration, RTCIceServer
 from aiortc.mediastreams import VideoStreamTrack
 from av import VideoFrame
+from typing import Optional, Dict, Any
 
 # Set up logging configuration with both file and console handlers
 def setup_logging():
-    # Get log level from environment variable or default to INFO
     log_level_name = os.environ.get('LOG_LEVEL', 'INFO').upper()
     log_level = getattr(logging, log_level_name, logging.INFO)
     
-    # Create logs directory if it doesn't exist
     log_dir = 'logs'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     
-    # Configure root logger
     logger = logging.getLogger()
     logger.setLevel(log_level)
     
-    # Clear any existing handlers
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
     
-    # Detailed log format with process ID
     log_format = logging.Formatter(
         '%(asctime)s - %(process)d - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # Add rotating file handler (10MB max size, keep 5 backup files)
     file_handler = RotatingFileHandler(
         os.path.join(log_dir, 'camera_client.log'),
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10*1024*1024,
         backupCount=5
     )
     file_handler.setFormatter(log_format)
     logger.addHandler(file_handler)
     
-    # Add console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_format)
     logger.addHandler(console_handler)
@@ -55,30 +49,33 @@ def setup_logging():
 logger = setup_logging()
 logger.info("Logging system initialized")
 
+# --- Configuration ---
+DEFAULT_SERVER_URL = "ws://localhost:3001"
+DEFAULT_STREAMER_ID = "AX591"
+DEFAULT_STUN_SERVER = "stun:stun.l.google.com:19302"
+
+SERVER_URL = os.environ.get("SERVER_URL", DEFAULT_SERVER_URL)
+STREAMER_ID = os.environ.get("STREAMER_ID", DEFAULT_STREAMER_ID)
+STUN_SERVERS = [
+    RTCIceServer(urls=[os.environ.get("STUN_SERVER_1", DEFAULT_STUN_SERVER)]),
+]
+
 """WebRTC video streaming client using aiortc and OpenCV."""
 class VideoCamera(VideoStreamTrack):
-    """Camera video track that captures from a camera."""
-
     def __init__(self):
-        # Camera quality settings, set the camera resolution
         lowres = [640, 480]
         highres = [1280, 720]
         
-        # Set the resolution we'll use
         self.width = highres[0]
         self.height = highres[1]
 
-        # Initialize camera capture
         super().__init__()
         self.logger = logging.getLogger("VideoCamera")
         self.cap = cv2.VideoCapture(0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         
-        # Create fallback frame immediately for better performance
         self.fallback_frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-        
-        # Track whether camera is released
         self._camera_released = False
 
     async def recv(self):
@@ -89,7 +86,6 @@ class VideoCamera(VideoStreamTrack):
             self.logger.error("Could not read from camera")
             frame = self.fallback_frame
 
-        # Color conversion from BGR to RGB
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         video_frame = VideoFrame.from_ndarray(frame, format="rgb24")
         video_frame.pts = pts
@@ -97,67 +93,53 @@ class VideoCamera(VideoStreamTrack):
         return video_frame
 
     def stop(self):
-        # Release camera resources
         if not self._camera_released and hasattr(self, 'cap') and self.cap.isOpened():
             self.cap.release()
             self._camera_released = True
             self.logger.info("Camera resources released by stop()")
 
     def __del__(self):
-        # Destructor to ensure camera is released
         if hasattr(self, '_camera_released') and not self._camera_released and hasattr(self, 'cap'):
             self.cap.release()
             self.logger.info("Camera resources released by destructor")
 
-# Class of the client
 class CameraClient:
-    """Client that connects to a signaling server and streams video via WebRTC."""
-    
-    STREAMER_ID = "AX591"  # This should ideally match the userId in the JWT
-    CLIENT_ID = "client"  # Target client ID for WebRTC signalling
-    SERVER = "ws://localhost:3001"  # Example HTTP endpoint (adjust if needed)
-    # SERVER = "wss://delabo.asthaweb.com/signalling"  # Use WS for WebSocket connection
-    
-    # --- Authentication Token ---
-    # !! IMPORTANT: Read token from file !!
     try:
-        with open('token.cred', 'r') as f:
+        token_path = os.environ.get("TOKEN_FILE_PATH", "token.cred")
+        with open(token_path, 'r') as f:
             JWT_TOKEN = f.read().strip()
     except FileNotFoundError:
-        logger.error("Error: token.cred file not found")
+        logger.error(f"Error: Token file '{token_path}' not found")
         JWT_TOKEN = None
     except Exception as e:
-        logger.error(f"Error reading token file: {e}")
+        logger.error(f"Error reading token file '{token_path}': {e}")
         JWT_TOKEN = None
-    # --------------------------
 
-    # Initial WebRTC constructor
-    def __init__(self, server_url=SERVER):
+    def __init__(self, server_url: str = SERVER_URL, streamer_id: str = STREAMER_ID):
+        self.STREAMER_ID = streamer_id
+        self.CLIENT_ID: str = ""
         self.server_url = server_url
-        self.websocket = None
-        self.peer_connection = None
-        self.is_streaming = False
-        self.answer_received = False
-        self.video_track = None
+        self.websocket: Optional[websockets.WebSocketClientProtocol] = None
+        self.peer_connection: Optional[RTCPeerConnection] = None
+        self.is_streaming: bool = False
+        self.answer_received: bool = False
+        self.video_track: Optional[VideoCamera] = None
         self.logger = logging.getLogger("CameraClient")
-        self.connection_status = "Disconnected"
-        self.reconnect_attempts = 0
-        self.max_reconnect_attempts = 10
-        self.reconnect_delay = 2
-        self.timeout = 5
-        
-        # Task tracking
-        self._tasks = set()
-    
-    # Helper for creating tracked tasks
-    def create_tracked_task(self, coro):
+        self.connection_status: str = "Disconnected"
+        self.reconnect_attempts: int = 0
+        self.max_reconnect_attempts: int = int(os.environ.get("MAX_RECONNECT", 10))
+        self.reconnect_delay: int = int(os.environ.get("RECONNECT_DELAY", 2))
+        self.timeout: int = int(os.environ.get("WEBRTC_TIMEOUT", 5))
+        self.offer_created_at: Optional[float] = None
+        self._tasks: set[asyncio.Task] = set()
+
+    def create_tracked_task(self, coro) -> asyncio.Task:
         task = asyncio.create_task(coro)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         return task
-    
+
     async def connect_websocket(self):
-        # Connect to the signaling server via WebSocket
         self.logger.info(f"Initializing WebSocket connection to {self.server_url}...")
         
         if not CameraClient.JWT_TOKEN:
@@ -165,10 +147,6 @@ class CameraClient:
             self.connection_status = "Auth Error"
             return  
     
-        # Build the URL with token as query parameter
-        """
-        This method isn't the most secure way to handle tokens
-        """
         ws_url = f"{self.server_url}?token={CameraClient.JWT_TOKEN}"
         
         try:
@@ -176,25 +154,20 @@ class CameraClient:
             self.logger.info("WebSocket connection established")
             self.connection_status = "WebSocket Connected"
             
-            # Start ping task to keep connection alive
             self.create_tracked_task(self.ping_server())
-            
-            # Start message handling loop
             await self.message_loop()
             
         except websockets.exceptions.InvalidStatusCode as e:
-             # Handle specific authentication errors (e.g., 401 Unauthorized)
             if e.status_code == 401:
                 self.logger.error(f"WebSocket connection failed: Authentication error (401 Unauthorized). Check your token.")
             else:
-                 self.logger.error(f"WebSocket connection failed with status code: {e.status_code}")
+                self.logger.error(f"WebSocket connection failed with status code: {e.status_code}")
             self.connection_status = "WebSocket Auth Error"
         except Exception as e:
             self.logger.error(f"WebSocket connection error: {e}")
             self.connection_status = "WebSocket Error"
             await self.try_reconnect()
     
-    # Attempt to reconnect to the WebSocket server
     async def try_reconnect(self):
         if self.reconnect_attempts < self.max_reconnect_attempts:
             self.reconnect_attempts += 1
@@ -204,25 +177,26 @@ class CameraClient:
         else:
             self.logger.error("Max reconnection attempts reached")
     
-    # Send periodic pings to keep the connection alive
     async def ping_server(self): 
         while True:
             if self.websocket:
                 try:
                     await self.send_message("ping", {"type": "ping", "id": self.STREAMER_ID, "target": "server"})
-                    await asyncio.sleep(15)  # Every 15 seconds
+                    await asyncio.sleep(15)
                 except websockets.exceptions.ConnectionClosed:
                     self.logger.warning("WebSocket closed during ping")
                     break
             else:
                 break
     
-    # Send a message to the signaling server
-    async def send_message(self, message_type, data):
+    async def send_message(self, message_type: str, data: Dict[str, Any]) -> bool:
         if self.websocket:
             try:
                 await self.websocket.send(json.dumps(data))
-                self.logger.info(f"Sent {message_type} message successfully")
+                if message_type not in ["ping", "pong", "candidate"]:
+                    self.logger.info(f"Sent {message_type} message successfully")
+                else:
+                    self.logger.debug(f"Sent {message_type} message successfully")
                 return True
             except Exception as e:
                 self.logger.error(f"Error sending {message_type} message: {e}")
@@ -231,22 +205,25 @@ class CameraClient:
             self.logger.error(f"Cannot send {message_type}, WebSocket not connected")
             return False
     
-    # Handle incoming messages from the server
     async def message_loop(self):
         try:
             async for message in self.websocket:
                 try:
-                    data = json.loads(message)
-                    self.logger.info(f"Received message: {data.get('type')} from {data.get('id', 'unknown')}")
-                    
-                    # Handle different message types
-                    if data.get("type") == "error":
+                    data: Dict[str, Any] = json.loads(message)
+                    msg_type = data.get('type', 'unknown')
+                    sender_id = data.get('id', 'unknown')
+                    if msg_type not in ["pong", "candidate"]:
+                        self.logger.info(f"Received message: {msg_type} from {sender_id}")
+                    else:
+                        self.logger.debug(f"Received message: {msg_type} from {sender_id}")
+
+                    if msg_type == "error":
                         self.logger.error(f"Error from server: {data.get('message')} (related to {data.get('originalType')})")
-                    
-                    elif data.get("type") == "pong":
+
+                    elif msg_type == "pong":
                         pass
-                    
-                    elif data.get("type") == "confirm_received":
+
+                    elif msg_type == "confirm_received":
                         await self.send_message("confirmation", {
                             "type": "confirm_received",
                             "messageType": data.get("messageType"),
@@ -254,22 +231,19 @@ class CameraClient:
                             "id": self.STREAMER_ID
                         })
 
-                    elif data.get("type") == "client_ready":
+                    elif msg_type == "client_ready":
                         self.logger.info(f"Client with ID {data.get('id')} is ready")
-                        # Update client ID
-                        self.CLIENT_ID = data.get("id")
+                        self.CLIENT_ID = data.get("id", "")
                         await self.start_stream()
-                    
-                    elif data.get("type") == "answer":
+
+                    elif msg_type == "answer":
                         await self.handle_answer(data)
-                    
-                    elif data.get("type") == "candidate":
+
+                    elif msg_type == "candidate":
                         await self.handle_ice_candidate(data)
-                        
+
                 except json.JSONDecodeError:
                     self.logger.error(f"Error parsing message: {message[:100]}...")
-                    
-        # Handle connection closed
         except websockets.exceptions.ConnectionClosed:
             self.logger.warning("WebSocket connection closed")
             self.connection_status = "Disconnected"
@@ -281,8 +255,7 @@ class CameraClient:
             
             await self.try_reconnect()
     
-    # Handle SDP answer from the client, sent after receiving the offer
-    async def handle_answer(self, data):
+    async def handle_answer(self, data: Dict[str, Any]):
         self.answer_received = True
         self.logger.info(f"Received SDP answer from client {data.get('sender')}")
         
@@ -291,14 +264,12 @@ class CameraClient:
                 self.logger.error("Error: No RTCPeerConnection when receiving answer")
                 return
             
-            # Acknowledge receipt to the server
             await self.send_message("answer_ack", {
                 "type": "answer_ack",
                 "target": data.get("sender"),
                 "id": self.STREAMER_ID
             })
             
-            # Set the remote description (client's answer)
             answer = RTCSessionDescription(sdp=data["answer"]["sdp"], type=data["answer"]["type"])
             await self.peer_connection.setRemoteDescription(answer)
             self.logger.info("Remote description set successfully")
@@ -310,92 +281,111 @@ class CameraClient:
             if self.is_streaming:
                 await self.start_stream()
     
-    # Handle ICE candidate from the client, sent after receiving the offer
-    async def handle_ice_candidate(self, data):
-        self.logger.info(f"Received ICE candidate from client {data.get('sender')}")
+    async def handle_ice_candidate(self, data: Dict[str, Any]):
+        sender = data.get('sender', 'unknown')
+        self.logger.debug(f"Received ICE candidate from client {sender}")
         try:
             if not self.peer_connection:
                 self.logger.error("Error: No RTCPeerConnection when receiving ICE candidate")
                 return
-            
-            # Parse the candidate string - contoh: "candidate:foundation component protocol priority ip port type ..."
-            candidate_str = data["candidate"].get("candidate", "")
+
+            candidate_data = data.get("candidate")
+            if not isinstance(candidate_data, dict):
+                self.logger.error(f"Invalid candidate data format received from {sender}: {candidate_data}")
+                return
+
+            candidate_str = candidate_data.get("candidate", "")
             if not candidate_str:
-                self.logger.error("Empty candidate string received")
+                self.logger.error(f"Empty candidate string received from {sender}")
                 return
-                
-            # Regex to parse the candidate string
+
             parts = re.match(r'candidate:(\S+) (\d+) (\S+) (\d+) (\S+) (\d+) typ (\S+)(?: raddr (\S+) rport (\d+))?', candidate_str)
-            
+
             if not parts:
-                self.logger.error(f"Could not parse candidate string: {candidate_str}")
+                self.logger.error(f"Could not parse candidate string from {sender}: {candidate_str}")
+                await self.send_message("candidate_error", {
+                    "type": "candidate_error",
+                    "target": data.get("sender", self.CLIENT_ID),
+                    "id": self.STREAMER_ID,
+                    "error": "Invalid candidate format"
+                })
                 return
-                
-            # Create RTCIceCandidate object
+
+            try:
+                foundation = parts.group(1)
+                component = int(parts.group(2))
+                protocol = parts.group(3)
+                priority = int(parts.group(4))
+                ip = parts.group(5)
+                port = int(parts.group(6))
+                typ = parts.group(7)
+                relatedAddress = parts.group(8)
+                relatedPort_str = parts.group(9)
+                relatedPort = int(relatedPort_str) if relatedPort_str else None
+                sdpMLineIndex = candidate_data.get("sdpMLineIndex")
+                sdpMid = candidate_data.get("sdpMid")
+
+                if sdpMLineIndex is None or sdpMid is None:
+                    raise KeyError("Missing sdpMLineIndex or sdpMid")
+
+            except (ValueError, TypeError) as e:
+                self.logger.error(f"Error converting candidate parts from {sender}: {e}. String was: {candidate_str}")
+                return
+            except KeyError as e:
+                self.logger.error(f"Missing required field in ICE candidate data from {sender}: {e}")
+                self.logger.debug(f"Received candidate data: {data}")
+                return
+
             candidate = RTCIceCandidate(
-                foundation=parts.group(1),
-                component=int(parts.group(2)),
-                protocol=parts.group(3),
-                priority=int(parts.group(4)),
-                ip=parts.group(5),
-                port=int(parts.group(6)),
-                type=parts.group(7),
-                relatedAddress=parts.group(8) if parts.group(8) else None,
-                relatedPort=int(parts.group(9)) if parts.group(9) else None,
-                sdpMLineIndex=data["candidate"].get("sdpMLineIndex"),
-                sdpMid=data["candidate"].get("sdpMid")
+                foundation=foundation,
+                component=component,
+                protocol=protocol,
+                priority=priority,
+                ip=ip,
+                port=port,
+                type=typ,
+                relatedAddress=relatedAddress,
+                relatedPort=relatedPort,
+                sdpMLineIndex=sdpMLineIndex,
+                sdpMid=sdpMid
             )
-            
+
             await self.peer_connection.addIceCandidate(candidate)
-            self.logger.info("ICE candidate added successfully")
-            
+            self.logger.debug("ICE candidate added successfully")
+
         except Exception as e:
-            self.logger.error(f"Error adding ICE candidate: {e}")
+            self.logger.error(f"Unexpected error adding ICE candidate from {sender}: {e}")
+            self.logger.debug(f"Problematic candidate data: {data}")
     
-    # Start the media stream
     async def start_stream(self):
-        # Reset answer received state
         self.answer_received = False
+        self.offer_created_at = None
         
         try:
-
-            # =======================================================================
-            # Initial check for WebSocket connection and peer connection
             if not self.websocket:
                 self.logger.error("WebSocket not connected. Reconnecting...")
                 await self.connect_websocket()
                 return
             
             if self.is_streaming and self.peer_connection:
-                # If already streaming, close the current connection and start a new one
                 self.logger.info("Stopping current stream and starting a new one")
                 await self.peer_connection.close()
                 self.peer_connection = None
                 self.is_streaming = False
-            # =======================================================================
             
             self.logger.info("Starting media stream...")
             
-            # Create video track
             self.video_track = VideoCamera()
             
-            # Create a new RTCPeerConnection with ice Servers
-            rtc_config = RTCConfiguration(
-                iceServers=[
-                    RTCIceServer(urls=["stun:stun.l.google.com:19302"]),
-                    RTCIceServer(urls=["stun:stun1.l.google.com:19302"]),
-                ]
-            )
-            self.logger.info("Initializing RTCPeerConnection...")
+            rtc_config = RTCConfiguration(iceServers=STUN_SERVERS)
+            self.logger.info(f"Initializing RTCPeerConnection with STUN: {[s.urls for s in STUN_SERVERS]}")
             self.peer_connection = RTCPeerConnection(rtc_config)
             
             self.connection_status = "Setting up WebRTC"
             
-            # Add track to peer connection
             self.peer_connection.addTrack(self.video_track)
             self.logger.info("Added video track to peer connection")
             
-            # Set up ICE candidate handling
             @self.peer_connection.on("icecandidate")
             async def on_ice_candidate(candidate):
                 if candidate:
@@ -414,7 +404,6 @@ class CameraClient:
                 else:
                     self.logger.info("ICE candidate gathering complete")
             
-            # Monitor connection state changes
             @self.peer_connection.on("iceconnectionstatechange")
             async def on_ice_connection_state_change():
                 state = self.peer_connection.iceConnectionState
@@ -428,7 +417,6 @@ class CameraClient:
                     self.logger.error("ICE connection failed - attempting to restart ICE")
                     await self.peer_connection.restartIce()
                 elif state == "disconnected":
-                    # Set a short timeout before considering it a full disconnection
                     self.logger.warning("Client connection unstable, will close if not recovered quickly")
                     self.is_streaming = False
                     
@@ -454,17 +442,16 @@ class CameraClient:
                     await self.peer_connection.close()
                     self.peer_connection = None
             
-            # Create the offer
             self.logger.info("Creating SDP offer...")
             offer = await self.peer_connection.createOffer()
             await self.peer_connection.setLocalDescription(offer)
             self.logger.info("Local description set")
             
-            # Wait a moment to gather some ICE candidates
+            self.offer_created_at = asyncio.get_event_loop().time()
+            
             self.logger.info("Waiting briefly to gather ICE candidates...")
             await asyncio.sleep(1)
             
-            # Send the offer to the client
             offer_dict = {
                 "sdp": self.peer_connection.localDescription.sdp,
                 "type": self.peer_connection.localDescription.type
@@ -480,10 +467,13 @@ class CameraClient:
             if success:
                 self.logger.info("SDP offer sent to client")
                 
-                # Set up a timer to check if we got an answer
                 async def check_answer():
                     await asyncio.sleep(10)
-                    if not self.answer_received and self.peer_connection:
+                    current_time = asyncio.get_event_loop().time()
+                    if (not self.answer_received and 
+                        self.peer_connection and 
+                        self.offer_created_at and 
+                        (current_time - self.offer_created_at) >= 10):
                         self.logger.warning("No answer received within timeout, connection may have failed")
                 
                 self.create_tracked_task(check_answer())
@@ -493,44 +483,47 @@ class CameraClient:
             self.connection_status = "Error"
             self.is_streaming = False
     
-    # Cleanup function to close connections
     async def cleanup(self):
-        # cancel all tasks
+        self.logger.info("Cleaning up resources...")
         for task in self._tasks:
             if not task.done():
                 task.cancel()
         
-        # wait for all tasks to finish
         if self._tasks:
             await asyncio.gather(*self._tasks, return_exceptions=True)
         
-        # close peer connection and websocket
         if self.peer_connection:
             await self.peer_connection.close()
         
         if self.websocket and self.websocket.open:
             await self.websocket.close()
+        self.logger.info("Cleanup complete.")
 
-# Main function to run the client
 async def main():
-    logger = logging.getLogger("Main")
-    logger.info("Starting Camera Client...")
-    # Check if token is set before starting
+    main_logger = logging.getLogger("CameraClient.Main")
+    main_logger.info("Starting Camera Client...")
+    
     if not CameraClient.JWT_TOKEN:
-        logger.error("JWT_TOKEN is not found on token.cred file or file is not found.")
+        main_logger.error("JWT_TOKEN is not found or token file is missing/unreadable.")
         return
         
-    client = CameraClient()
-    logger.info(f"Attempting to connect to {client.server_url} as {client.STREAMER_ID}...")
+    client = CameraClient(server_url=SERVER_URL, streamer_id=STREAMER_ID)
+    main_logger.info(f"Attempting to connect to {client.server_url} as {client.STREAMER_ID}...")
     
     try:
         await client.connect_websocket()
-        logger.info("WebSocket connection established. Starting video stream...")
+        if client.websocket:
+            main_logger.info("WebSocket connection established. Client running...")
+            await asyncio.Future()
+        else:
+            main_logger.error("Failed to establish initial WebSocket connection.")
     except KeyboardInterrupt:
-        logger.info("Interrupted by user")
+        main_logger.info("Interrupted by user")
+    except asyncio.CancelledError:
+        main_logger.info("Main task cancelled.")
     finally:
+        main_logger.info("Initiating client cleanup...")
         await client.cleanup()
 
-# Run the main function
-if __name__ == "__main__":        
+if __name__ == "__main__":
     asyncio.run(main())
