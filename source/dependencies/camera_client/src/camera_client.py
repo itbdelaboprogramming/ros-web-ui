@@ -51,6 +51,7 @@ logger.info("Logging system initialized")
 
 # --- Configuration ---
 DEFAULT_SERVER_URL = "ws://localhost:3001"
+# DEFAULT_SERVER_URL = "wss://delabo.asthaweb.com/signalling"
 DEFAULT_STREAMER_ID = "AX591"
 DEFAULT_STUN_SERVER = "stun:stun.l.google.com:19302"
 
