@@ -1,0 +1,43 @@
+# YAML alias for MQTT SSL version.
+tls_1_2: &tls_1_2 3
+
+broker:
+  host: aaab32f0147446708366c54a819083d4.s1.eu.hivemq.cloud
+  port: 8883
+  user: itbdelabo
+  pass: Itbdelabo123
+  tls:
+    enabled: true
+    # ca_certificate: ${PKG_PATH}/certs/isrgrootx1.pem
+    version: *tls_1_2
+    verify: true
+
+client:
+  id: user_server
+  clean_session: false
+  keep_alive_interval: 6.0
+  tls:
+    version: *tls_1_2
+    verify: true
+
+bridge:
+  ros2mqtt:
+    - mqtt_topic: /string/move_base/goal
+      ros_topic: /string/move_base/goal
+      primitive: true
+    - mqtt_topic: /string/move_base/cancel
+      ros_topic: /string/move_base/cancel
+      primitive: true
+  mqtt2ros:
+    - ros_topic: /string/robotpose
+      mqtt_topic: /string/robotpose
+      primitive: true
+    - ros_topic: /string/move_base/result
+      mqtt_topic: /string/move_base/result
+      primitive: true
+    - ros_topic: /string/map
+      mqtt_topic: /string/map
+      primitive: true
+    - ros_topic: /pingpong_hivemq
+      mqtt_topic: /pingpong
+      primitive: true

@@ -1,0 +1,58 @@
+# YAML alias for MQTT SSL version.
+# The supported values are defined at:
+# https://github.com/eclipse/paho.mqtt.cpp/blob/master/src/mqtt/ssl_options.h#L305
+
+# YAML alias for MQTT SSL version.
+tls_1_2: &tls_1_2 3
+
+broker:
+  host: aaab32f0147446708366c54a819083d4.s1.eu.hivemq.cloud
+  port: 8883
+  user: itbdelabo
+  pass: Itbdelabo123
+  tls:
+    enabled: true
+    # ca_certificate: ${PKG_PATH}/certs/isrgrootx1.pem
+    version: *tls_1_2
+    verify: true
+
+client:
+  id: user_msd
+  clean_session: false
+  keep_alive_interval: 6.0
+  tls:
+    version: *tls_1_2
+    verify: true
+
+bridge:
+  # types results in the error message Connection to broker lost, will try to reconnect...
+  ros2mqtt:
+    # Outgoing (MSD -> Server)
+    - ros_topic: /msd/ping
+      mqtt_topic: /server/ping
+      primitive: true
+    - ros_topic: /string/robotpose
+      mqtt_topic: /string/robotpose
+      primitive: true
+    - ros_topic: /string/move_base/result
+      mqtt_topic: /string/move_base/result
+      primitive: true
+    - ros_topic: /string/map
+      mqtt_topic: /string/map
+      primitive: true
+
+  mqtt2ros:
+    # Incoming (Server -> MSD)
+    - ros_topic: /msd/pong
+      mqtt_topic: /msd/pong
+      primitive: true
+    - mqtt_topic: /string/move_base/goal
+      ros_topic: /string/move_base/goal
+      primitive: true
+    - mqtt_topic: /string/move_base/cancel
+      ros_topic: /string/move_base/cancel
+      primitive: true
+    - mqtt_topic: /itbdelabo/unit1/system_command
+      ros_topic: /system_command
+      primitive: true
+    

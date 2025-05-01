@@ -6,7 +6,6 @@ client:
   id: user_server
 
 bridge:
-  # types results in the error message Connection to broker lost, will try to reconnect...
   ros2mqtt:
     # Outgoing (Server -> MSD)
     - ros_topic: /server/ping
