@@ -31,6 +31,7 @@ catkin_install_python(PROGRAMS
   scripts/map_saver.py
   scripts/switch_mode.py
   scripts/system_command.py
+  scripts/hardware_monitor.py
   
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

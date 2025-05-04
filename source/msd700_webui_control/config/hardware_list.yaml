@@ -1,0 +1,9 @@
+hardware:
+  lidar:
+    topic: "/lidar"
+    launch_file: "msd700_bringup lidar_scanner.launch"
+    timeout: 5.0
+  mcu:
+    topic: "/hardware_state"
+    launch_file: "msd700_bringup serial_launch.launch"
+    timeout: 5.0
