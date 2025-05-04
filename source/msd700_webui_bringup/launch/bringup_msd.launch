@@ -4,6 +4,7 @@
     <arg name="use_cloud" default="true" />
     <arg name="use_aws" default="false" />
     <arg name="use_hive" default="false" />
+    <arg name="use_serverless" default="false" />
 
     <!-- Launch for topic2string pkg launchfile -->
     <include file="$(find topic2string)/launch/msd.launch" />
@@ -27,7 +28,9 @@
         </group>
 
         <group if="$(arg use_hive)">
-            <include file="$(find aws_mqtt)/launch/hive_msd.launch" />
+            <include file="$(find aws_mqtt)/launch/hive_msd.launch">
+                <arg name="use_serverless" value="$(arg use_serverless)" />
+            </include>
         </group>
     </group>
     
